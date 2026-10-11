@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.invalid/time-assistant/week.schema.json",
+  "title": "time-assistant week file",
+  "description": "One reporting week exported from the source time system. Produced by an AI agent (or by hand), consumed by sync.py. `python3 sync.py validate --week FILE` enforces this shape offline.",
+  "type": "object",
+  "required": ["from", "to", "time_events", "expenses"],
+  "properties": {
+    "week": { "type": "string", "description": "Label only, e.g. 2026-W41." },
+    "from": { "type": "string", "format": "date", "description": "First day of the period, yyyy-mm-dd." },
+    "to": { "type": "string", "format": "date", "description": "Last day of the period (inclusive)." },
+    "time_events": {
+      "type": "array",
+      "description": "EVERY time entry of the period, on every project. sync.py applies the project filter itself.",
+      "items": {
+        "type": "object",
+        "required": ["id", "date", "hours", "activity_id", "project_id", "status"],
+        "properties": {
+          "id": { "type": ["integer", "string"], "description": "Stable id in the source system. Becomes the [kleer:t:<id>] marker in TimeKeeper." },
+          "date": { "type": "string", "format": "date" },
+          "hours": { "type": "number", "exclusiveMinimum": 0, "maximum": 24, "description": "Decimal hours, e.g. 7.5." },
+          "activity_id": { "type": "integer", "description": "Source activity id, mapped by config.json time_map." },
+          "project_id": { "type": ["integer", "null"], "description": "Source project id; null if none. Never relabel." },
+          "status": { "type": "string", "description": "Approval status copied exactly from the source, e.g. Open, Approved, Certified." },
+          "comment": { "type": "string", "description": "The EXTERNAL (customer-visible) comment. Never the internal comment." }
+        }
+      }
+    },
+    "expenses": {
+      "type": "array",
+      "description": "Receipt-type expense entries of the period (use [] if none).",
+      "items": {
+        "type": "object",
+        "required": ["id", "date", "amount_ore", "project_id"],
+        "properties": {
+          "id": { "type": ["integer", "string"], "description": "e.g. <expense nr>-<entry id>. Becomes the [kleer:e:<id>] marker." },
+          "date": { "type": "string", "format": "date" },
+          "description": { "type": "string" },
+          "amount_ore": { "type": "integer", "minimum": 0, "description": "Total INCLUDING VAT in minor units (1/100 of the currency)." },
+          "expense_type": { "type": "string", "description": "Source expense type name, mapped by config.json expense_map." },
+          "project_id": { "type": ["integer", "null"], "description": "Project the expense is re-invoiced to; null if none." },
+          "has_receipt": { "type": "boolean" },
+          "receipt_file": { "type": ["string", "null"], "description": "Absolute path of the matching receipt file on the user's machine, user-confirmed." }
+        }
+      }
+    }
+  }
+}

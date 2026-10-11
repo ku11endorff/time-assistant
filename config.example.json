@@ -1,0 +1,37 @@
+{
+  "_comment": "Copy to config.json (git-ignored) and replace every value with your own IDs. Use `./tk.sh discover` for the TimeKeeper IDs. Straight quotes, numeric IDs only. The numbers below are made-up placeholders.",
+
+  "timekeeper_user_id": 100,
+  "delete_stale": false,
+
+  "approval": {
+    "required": true,
+    "accepted_statuses": ["Approved", "Certified"]
+  },
+
+  "scope": {
+    "_note": "Only this ONE source project is replicated, into this ONE TimeKeeper project. Everything else is ignored.",
+    "kleer_project_nr": "100",
+    "kleer_project_id": 1000001,
+    "_kleer_name": "Example Client // Consulting engagement",
+    "tk_project_id": 5001,
+    "_tk_name": "Consulting engagement (use the INTERNAL id from `discover`, not the project number)"
+  },
+
+  "time_map": [
+    {
+      "kleer_activity_id": 1001,
+      "_kleer_activity_name": "Consulting",
+      "tk_activity_id": 201,
+      "tk_timecode_id": 301,
+      "comment": ""
+    }
+  ],
+
+  "expense_map": {
+    "default": {
+      "tk_wagecode_id": 401,
+      "_note": "There is no list endpoint for wage codes: copy wagecodeID from an existing expense row in TimeKeeper."
+    }
+  }
+}
