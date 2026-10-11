@@ -1,0 +1,13 @@
+{
+  "week": "2026-W41",
+  "from": "2026-10-05",
+  "to": "2026-10-11",
+  "time_events": [
+    {"id": 7000001, "date": "2026-10-05", "hours": 7.5, "activity_id": 1001, "project_id": 1000001, "status": "Approved", "comment": "Example: weekly planning and incident follow-up"},
+    {"id": 7000002, "date": "2026-10-06", "hours": 8.5, "activity_id": 1001, "project_id": 1000001, "status": "Approved", "comment": ""},
+    {"id": 7000003, "date": "2026-10-07", "hours": 8.0, "activity_id": 1001, "project_id": 1000001, "status": "Approved", "comment": ""},
+    {"id": 7000004, "date": "2026-10-08", "hours": 7.0, "activity_id": 1001, "project_id": 1000001, "status": "Approved", "comment": ""},
+    {"id": 7000005, "date": "2026-10-09", "hours": 8.0, "activity_id": 1001, "project_id": 1000001, "status": "Approved", "comment": ""}
+  ],
+  "expenses": []
+}
