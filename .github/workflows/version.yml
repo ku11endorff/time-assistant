@@ -1,0 +1,26 @@
+name: version
+# Every pull request ticks Major / Minor / Patch in its description and sets __version__
+# to the matching next version, with a CHANGELOG.md section (CONTRIBUTING.md#versioning).
+on:
+  pull_request:
+    types: [opened, edited, synchronize, reopened]
+permissions:
+  contents: read
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Version matches the ticked bump
+        env:
+          PR_BODY: ${{ github.event.pull_request.body }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          base_version="$(git show "origin/$BASE_REF:time_assistant/__init__.py" \
+            | sed -n 's/^__version__ = "\(.*\)"$/\1/p')"
+          python3 tools/check_version.py --base-version "$base_version"

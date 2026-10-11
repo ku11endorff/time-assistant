@@ -1,11 +1,16 @@
 name: release
-# Publishes a GitHub release for every pushed version tag (v0.4.0, ...), with the notes
-# from that version's CHANGELOG.md section. Steps: CONTRIBUTING.md#releasing.
+# Publishes a GitHub release, and its vX.Y.Z tag, for every new version that lands on
+# main, with that version's CHANGELOG.md section as notes. Every pull request bumps the
+# version (CONTRIBUTING.md#versioning), so every merge is a release.
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+  workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: release
+  cancel-in-progress: false
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -14,11 +19,30 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Unit tests
-        run: python3 -m unittest discover -s tests -p "test_*.py"
-      - name: Tag, version and changelog agree
-        run: python3 tools/release_notes.py "$GITHUB_REF_NAME" > release-notes.md
-      - name: Publish the release
+      - name: Version on main, and whether it is released
+        id: v
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release create "$GITHUB_REF_NAME" --title "time-assistant $GITHUB_REF_NAME" --notes-file release-notes.md --verify-tag
+        run: |
+          version="$(python3 -c 'import time_assistant; print(time_assistant.__version__)')"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          if gh release view "v$version" >/dev/null 2>&1; then
+            echo "v$version is already released; nothing to do."
+            echo "released=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "released=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Unit tests
+        if: steps.v.outputs.released == 'false'
+        run: python3 -m unittest discover -s tests -p "test_*.py"
+      - name: Version and changelog agree
+        if: steps.v.outputs.released == 'false'
+        env:
+          VERSION: ${{ steps.v.outputs.version }}
+        run: python3 tools/release_notes.py "v$VERSION" > release-notes.md
+      - name: Publish the release
+        if: steps.v.outputs.released == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.v.outputs.version }}
+        run: gh release create "v$VERSION" --target "$GITHUB_SHA" --title "time-assistant v$VERSION" --notes-file release-notes.md
