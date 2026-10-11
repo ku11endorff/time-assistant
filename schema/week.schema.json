@@ -11,18 +11,18 @@
     "to": { "type": "string", "format": "date", "description": "Last day of the period (inclusive)." },
     "time_events": {
       "type": "array",
-      "description": "EVERY time entry of the period, on every project. sync.py applies the project filter itself.",
+      "description": "EVERY time entry of the period, on every project. sync.py sends each project only to the targets configured for it.",
       "items": {
         "type": "object",
         "required": ["id", "date", "hours", "activity_id", "project_id", "status"],
         "properties": {
-          "id": { "type": ["integer", "string"], "description": "Stable id in the source system. Becomes the [kleer:t:<id>] marker in TimeKeeper." },
+          "id": { "type": ["integer", "string"], "pattern": "^[A-Za-z0-9_-]+$", "description": "Stable id in the source system: letters, digits, - and _ only. Becomes the [ta:t:<id>] tag on the row in each target." },
           "date": { "type": "string", "format": "date" },
           "hours": { "type": "number", "exclusiveMinimum": 0, "maximum": 24, "description": "Decimal hours, e.g. 7.5." },
-          "activity_id": { "type": "integer", "description": "Source activity id, mapped by config.json time_map." },
-          "project_id": { "type": ["integer", "null"], "description": "Source project id; null if none. Never relabel." },
+          "activity_id": { "type": "integer", "description": "Source activity id, mapped per target by time_map in config.json." },
+          "project_id": { "type": ["integer", "null"], "description": "Source project id; null if none. Decides which targets receive the entry. Never relabel." },
           "status": { "type": "string", "description": "Approval status copied exactly from the source, e.g. Open, Approved, Certified." },
-          "comment": { "type": "string", "description": "The EXTERNAL (customer-visible) comment. Never the internal comment." }
+          "comment": { "type": "string", "description": "The EXTERNAL (customer-visible) comment, sent to the targets. Never the internal comment." }
         }
       }
     },
@@ -33,11 +33,11 @@
         "type": "object",
         "required": ["id", "date", "amount_ore", "project_id"],
         "properties": {
-          "id": { "type": ["integer", "string"], "description": "e.g. <expense nr>-<entry id>. Becomes the [kleer:e:<id>] marker." },
+          "id": { "type": ["integer", "string"], "pattern": "^[A-Za-z0-9_-]+$", "description": "e.g. <expense nr>-<entry id>. Becomes the [ta:e:<id>] tag." },
           "date": { "type": "string", "format": "date" },
           "description": { "type": "string" },
           "amount_ore": { "type": "integer", "minimum": 0, "description": "Total INCLUDING VAT in minor units (1/100 of the currency)." },
-          "expense_type": { "type": "string", "description": "Source expense type name, mapped by config.json expense_map." },
+          "expense_type": { "type": "string", "description": "Source expense type name, mapped per target by expense_map in config.json." },
           "project_id": { "type": ["integer", "null"], "description": "Project the expense is re-invoiced to; null if none." },
           "has_receipt": { "type": "boolean" },
           "receipt_file": { "type": ["string", "null"], "description": "Absolute path of the matching receipt file on the user's machine, user-confirmed." }

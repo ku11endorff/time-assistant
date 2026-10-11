@@ -1,20 +1,25 @@
 # time-assistant
 
-Register your time and expenses **once**. Let an AI agent copy the approved week into the
-second system that also wants it.
+Register your time and expenses **once**. Let an AI agent copy the approved week into
+every other system that also wants it.
 
-Reference setup: register in **Kleer**, replicate into **TimeKeeper**. This is typical for
-consultants who book time in their employer's system and must book the same hours in a
-client's or staffing partner's system. The agent does the reading; a small, dependency-free
-Python script does the writing, only after you have seen a dry run.
+Consultants often report the same hours two or three times: in the employer's time system,
+in the client's, and, when working as a subcontractor, in the staffing partner's too.
+time-assistant reads the approved week from the system you register in (the **source**;
+reference setup: **Kleer**) and replicates it into each of the others (the **targets**;
+first supported target: **TimeKeeper**). The agent does the reading; a small,
+dependency-free Python script does the writing, only after you have seen a dry run.
 
 - **Agent-neutral.** Works with Claude, ChatGPT/Codex, GitHub or Microsoft Copilot, or any
   agent that can read your time data and follow written instructions. See [docs/agents.md](docs/agents.md).
+- **Several targets, added over time.** Each target is one Python module behind a small,
+  tested interface. Adding a system is a well-defined contribution:
+  [docs/adding-a-target.md](docs/adding-a-target.md).
+- **You decide what goes where.** Each target takes only the source projects you list for it.
 - **Approved weeks only.** An unapproved week is refused with a clear error.
-- **One project in, one project out.** Everything else in the source system is ignored.
-- **Safe to re-run.** Rows carry a marker, so re-runs update instead of duplicating. Your
-  manual TimeKeeper rows are never touched.
-- **Your password never meets the AI.** It stays in your OS keychain.
+- **Safe to re-run.** Rows carry a tag, so re-runs update instead of duplicating. Rows you
+  typed by hand in a target are never touched.
+- **Your passwords never meet the AI.** They stay in your OS keychain, one per target.
 - **Receipts** are attached to expenses, matched to files you confirm.
 
 > Status: beta. The Kleer reader and TimeKeeper dry-run are used for real; writing of
@@ -22,72 +27,30 @@ Python script does the writing, only after you have seen a dry run.
 > offline tests against a fake TimeKeeper. Always read the dry run first, and please open
 > an issue for anything unexpected.
 
+## Supported targets
+
+| Target | `type` | Time | Expenses | Receipts | Status | Setup |
+|---|---|:-:|:-:|:-:|---|---|
+| TimeKeeper | `timekeeper` | ✓ | ✓ | ✓ | beta | [docs/targets/timekeeper.md](docs/targets/timekeeper.md) |
+
+Need another system? Open a *New target* issue, or build it:
+[docs/adding-a-target.md](docs/adding-a-target.md). `python3 sync.py targets` lists what
+your copy supports.
+
+The **source** side needs no code: any system your agent can read works, as long as the
+agent writes the week file ([docs/data-convention.md](docs/data-convention.md)).
+
 ## How it fits together
 
 ```mermaid
-flowchart TD
-    subgraph SRC["Source system, reference: Kleer"]
-        K1["Time entries<br/>status: Open, Approved or Certified"]
-        K2["Expenses<br/>with receipt flag"]
-    end
-
-    subgraph AGENT["Your AI agent - any of Claude, ChatGPT, Copilot, ..."]
-        C1["Pick week<br/>default: previous full ISO week"]
-        C2{"Every time entry<br/>approved?"}
-        C3["STOP<br/>Week not yet approved in the source,<br/>cannot be replicated to TimeKeeper"]
-        C4["Receipts on the configured project?<br/>Ask for the folder, confirm matches"]
-        C5["Write week-YYYY-Www.json<br/>and validate it"]
-    end
-
-    subgraph LOCAL["Your computer"]
-        M1["Sync.command (macOS)<br/>or ./tk.sh plan / apply"]
-        M2["tk.sh<br/>reads password from OS keychain"]
-        M3["sync.py"]
-        M4[("OS keychain")]
-        M5[("Receipt files")]
-        M6["config.json<br/>scope and ID mapping"]
-    end
-
-    subgraph SYNC["Inside sync.py"]
-        S0{"Week file valid?"}
-        S1{"Whole week<br/>approved?"}
-        S2["Split week by calendar month"]
-        S3["Per month: keep configured project only,<br/>map IDs, build rows"]
-        S4["Compare with TimeKeeper<br/>by marker in comment"]
-        S5["Dry run shown to you"]
-        S6{"You type y?"}
-        S7["Create / update rows,<br/>upload receipts"]
-        S8["Verify: re-plan shows everything unchanged"]
-    end
-
-    TK[("TimeKeeper API")]
-
-    K1 -->|"MCP / API / export"| C1
-    K2 -->|"MCP / API / export"| C1
-    C1 --> C2
-    C2 -->|"no"| C3
-    C2 -->|"yes"| C4
-    M5 -.->|"files you confirm"| C4
-    C4 --> C5
-    C5 --> M1
-    M1 --> M2
-    M4 -.->|"password"| M2
-    M2 --> M3
-    M6 -.-> M3
-    M3 --> S0
-    S0 -->|"no: ERROR"| S5
-    S0 -->|"yes"| S1
-    S1 -->|"no: ERROR, nothing written"| S5
-    S1 -->|"yes"| S2
-    S2 --> S3
-    S3 --> S4
-    S4 <-->|"HTTPS Basic Auth, read"| TK
-    S4 --> S5
-    S5 --> S6
-    S6 -->|"no"| X["Cancelled, nothing written"]
-    S6 -->|"yes"| S7
-    S7 -->|"write"| TK
-    S7 --> S8
+flowchart LR
+    SRC["Source system<br/>reference: Kleer"] -->|"MCP / API / export"| AGENT["Your AI agent<br/>reads the week, checks approval,<br/>matches receipts"]
+    AGENT -->|"week-YYYY-Www.json"| SYNC["sync.py on your computer<br/>validate, route per target,<br/>dry run, write, verify"]
+    CFG["config.json<br/>targets and id mapping"] -.-> SYNC
+    KC[("OS keychain<br/>one secret per target")] -.-> SYNC
+    SYNC --> T1["Target: client's TimeKeeper"]
+    SYNC --> T2["Target: partner's TimeKeeper"]
+    SYNC -.-> T3["Target: the next system<br/>(one new module)"]
 ```
 
 ```mermaid
@@ -95,8 +58,8 @@ sequenceDiagram
     actor You
     participant Agent as Your AI agent
     participant Src as Source system
-    participant Local as Launcher + sync.py
-    participant TK as TimeKeeper API
+    participant Local as sync.py
+    participant T as Each target
 
     You->>Src: Register and approve the week
     You->>Agent: "Export last week for time-assistant"
@@ -107,126 +70,182 @@ sequenceDiagram
     else all approved
         Agent->>You: Ask for receipt files (only if needed)
         Agent->>Local: Write week-YYYY-Www.json, validate
-        You->>Local: Run ./tk.sh plan (or double-click Sync.command)
-        Local->>TK: Read existing registrations
-        Local-->>You: Plan per month: create, update, unchanged
-        You->>Local: Confirm
-        Local->>TK: Create / update rows, upload receipts
-        Local->>TK: Read back and verify
+        You->>Local: python3 sync.py plan (or double-click Sync.command)
+        Local->>T: Read existing rows
+        Local-->>You: Plan per target and month: create, update, unchanged
+        You->>Local: python3 sync.py apply
+        Local->>T: Create / update rows, upload receipts
+        Local->>T: Read back and verify
         Local-->>You: Everything unchanged = done
     end
 ```
 
+More detail, including the interface between the engine and the targets:
+[docs/architecture.md](docs/architecture.md).
+
 ## Quick start
 
-Requirements: Python 3.9+ (standard library only), a TimeKeeper account with API access,
-and an AI agent that can read your source system.
+Requirements: Python 3.9+ (standard library only), an account with API access in each
+target, and an AI agent that can read your source system.
 
 ```bash
 git clone https://github.com/<you>/time-assistant.git
 cd time-assistant
 
-# 1. Store the TimeKeeper password in your keychain (it prompts; nothing is saved in a file)
-security add-generic-password -s time-assistant -a 'YOUR-TIMEKEEPER-USERNAME' -U -w     # macOS
-# Linux: secret-tool store --label=time-assistant service time-assistant account 'YOUR-TIMEKEEPER-USERNAME'
+# 1. Create your configuration (git-ignored): one entry under "targets" per system
+cp config.example.json config.json        # set name, username and source_project_ids
 
-# 2. Create your configuration (git-ignored) and fill in your own IDs
-cp config.example.json config.json
-./tk.sh discover          # lists your TimeKeeper projects, activities and time codes
+# 2. Store each target's password in your keychain (it prompts; nothing is saved in a file)
+security add-generic-password -s time-assistant:client -a password -U -w      # macOS
+# Linux: secret-tool store --label=time-assistant:client service time-assistant:client account password
 
-# 3. Check that the pieces work without touching anything
+# 3. Look up the ids each target needs, fill them in, check the file
+python3 sync.py discover
+python3 sync.py check-config
+
+# 4. Check the week-file side without touching anything
 python3 sync.py validate --week examples/week.example.json
 ```
 
-Then give your agent the instructions for its platform ([docs/agents.md](docs/agents.md))
-and every week:
+The setup page of each target says exactly which ids it needs:
+[TimeKeeper](docs/targets/timekeeper.md). Then give your agent the instructions for its
+platform ([docs/agents.md](docs/agents.md)) and every week:
 
 1. Register your time in the source system and get the week **approved**.
 2. Ask your agent: *"Export last week for time-assistant."* It writes `week-YYYY-Www.json`
    next to `sync.py`.
-3. `./tk.sh plan --week week-YYYY-Www.json` and read it. (macOS: double-click `Sync.command`;
-   it shows the plan and asks for `y`.)
-4. `./tk.sh apply --week week-YYYY-Www.json`. The verification run should show everything
-   `unchanged`.
+3. `python3 sync.py plan --week week-YYYY-Www.json` and read it. (macOS: double-click
+   `Sync.command`; it shows the plan for every target and asks for `y`.)
+4. `python3 sync.py apply --week week-YYYY-Www.json`. The verification run should show
+   everything `unchanged`.
+
+## Several targets
+
+Add one entry under `targets` per system. Each has its own name, login, source projects
+and id mapping:
+
+```json
+"targets": [
+  { "name": "client",  "type": "timekeeper", "source_project_ids": [1000001], ... },
+  { "name": "partner", "type": "timekeeper", "source_project_ids": [1000001],
+    "accepted_statuses": ["Certified"], ... }
+]
+```
+
+- The same source project may go to several targets.
+- A target can be stricter than the week gate, e.g. only take `Certified` time.
+- `plan` and `apply` run every enabled target; `--target partner` runs just one;
+  `"enabled": false` parks a target.
+- Each target's password is stored under its own name: keychain service
+  `time-assistant:<name>`.
+
+Full example: [examples/config.two-targets.example.json](examples/config.two-targets.example.json).
+Every field: [docs/configuration.md](docs/configuration.md).
 
 ## Rules the tool enforces
 
-**Scope.** Only the one source project in `config.json` → `scope.kleer_project_id` is
-replicated, only into `scope.tk_project_id` (the *internal* TimeKeeper id, not the project
-number; `discover` prints both). Everything else is ignored and listed at the end of each run.
+**Routing.** A target only receives entries from its `source_project_ids`. Everything that
+no target takes is listed at the end of each run.
 
-**Approval gate.** Every time entry in the week must have an accepted status (default
-`Approved`, `Certified`; configurable in `approval.accepted_statuses`; the last sentence of
-the error comes from `approval.rerun_hint`, so you can name your own skill or command). Otherwise nothing is
-planned or written:
+**Approval gate.** Every time entry in the week, on any project, must have an accepted
+status (default `Approved`, `Certified`; configurable in `approval.accepted_statuses`).
+Otherwise nothing is planned or written for any target. The last sentence of the error
+comes from `source.rerun_hint`, so you can name your own skill or command:
 
 ```
 ERROR   WEEK NOT APPROVED IN KLEER: 1 time entry (2026-10-12) not approved yet. The week has
-        not yet been approved in Kleer and therefore cannot be replicated to TimeKeeper.
+        not yet been approved in Kleer and therefore cannot be replicated to any target.
         Approve the week in Kleer, then run the export again.
 ```
 
-**Month boundaries.** A week such as 28 Sep – 4 Oct is split into its calendar months
-and each part is planned, posted and verified on its own (still one TimeKeeper row per
-day). If one month fails, for example a closed period, the other is still posted and the
-run ends with a message naming the failed month. Re-running is safe.
+**Errors block writing everywhere.** An unmapped activity, a missing receipt or a target
+that cannot be reached shows up in the dry run, and `apply` then writes nothing at all. Use
+`--target` to write only the targets without errors.
 
-**Comments.** TimeKeeper gets the source's *external* comment. The internal comment is
-never exported.
+**Month boundaries.** For targets that work per month (TimeKeeper does), a week such as
+28 Sep – 4 Oct is split into its calendar months and each part is planned, written and
+verified on its own. If one month or one target fails while writing, for example a closed
+period, the rest is still written and the run ends naming what failed. Re-running is safe.
 
-**Safety.** Dry run by default; manual TimeKeeper rows are never edited or deleted;
-rows removed in the source are kept (WARN) unless `delete_stale` is on; mapping errors
-block everything. Details and the full field table: [docs/data-convention.md](docs/data-convention.md).
+**Comments.** Targets get the source's *external* comment. The internal comment is never
+exported.
+
+**Safety.** Dry run by default; rows typed by hand are never edited or deleted; rows
+removed in the source are kept (WARN) unless the target has `delete_stale` on. Details:
+[docs/data-convention.md](docs/data-convention.md).
+
+## Upgrading from the single-TimeKeeper version
+
+```bash
+python3 sync.py migrate-config      # converts config.json, keeps config.json.bak-v1
+```
+
+Then store the password again under the new name it prints (keychain service
+`time-assistant:timekeeper`). Rows already in TimeKeeper keep matching: their old
+`[kleer:t:…]` tags are still recognised and not rewritten. `tk.sh` is no longer needed;
+it still works for one release and then goes away.
 
 ## Repository layout
 
 | Path | Purpose |
 |---|---|
-| `sync.py` | Validate, plan and apply. Standard library only |
-| `tk.sh` | Runs `sync.py` with the password from your OS keychain |
-| `Sync.command` | macOS double-click launcher: dry run, confirm, post, verify |
-| `config.example.json` | Template for your private `config.json` (IDs and mapping) |
+| `sync.py` | The command: validate, check-config, discover, plan, apply. Standard library only |
+| `time_assistant/` | The code: `engine.py` (target-independent), `targets/` (one module per target), config, week file, credentials |
+| `Sync.command` | macOS double-click launcher: dry run, confirm, write, verify |
+| `config.example.json` | Template for your private `config.json` |
 | `schema/week.schema.json` | The week file contract between agent and script |
-| `examples/week.example.json` | A valid example week with made-up data |
+| `examples/` | A valid example week and a two-target example config |
 | `docs/agent-playbook.md` | The agent instructions (single source of truth) |
-| `docs/agents.md` | How to use it with Claude, ChatGPT, Copilot or any agent |
-| `docs/data-convention.md` | Field-by-field mapping source ↔ TimeKeeper |
+| `docs/architecture.md` | How the pieces fit and the target interface |
+| `docs/configuration.md` | Every field of `config.json` |
+| `docs/targets/` | One setup page per target |
+| `docs/adding-a-target.md` | How to add a target |
+| `docs/data-convention.md` | Source → week file, and how rows are recognised |
 | `AGENTS.md`, `.github/copilot-instructions.md`, `integrations/` | Generated from the playbook by `tools/build_adapters.py` |
-| `tests/` | Offline tests against a fake TimeKeeper |
+| `tests/` | Offline tests; `tests/target_contract.py` is the suite every target must pass |
 
 ## Known limits
 
 - Mileage and allowance expense entries, and absences, are not synced.
-- `isInvoiced` is always `false`; the source's invoicing state is not forwarded.
-- One source project maps to one TimeKeeper project per `config.json`.
-- Kleer approval is checked on time entries only, not on expenses.
-- The reference reader is Kleer; other source systems need only a different export step
-  (see the last section of [docs/data-convention.md](docs/data-convention.md)).
+- The source's invoicing state is not forwarded.
+- Approval is checked on time entries only, not on expenses.
+- The reference source is Kleer; other source systems need only a different export step
+  (see [docs/data-convention.md](docs/data-convention.md)).
+- Two targets in the same account must use different projects; `check-config` refuses
+  otherwise. Target-specific limits are on each target's page.
 
 ## Troubleshooting
 
 | Symptom | Cause and fix |
 |---|---|
-| `security: ... item could not be found in the keychain` | The keychain account must equal your TimeKeeper username (`.tk_user`). Re-run the `security add-generic-password` command with `-U` |
-| `JSONDecodeError` in `config.json` | Curly or single quotes, names instead of numeric IDs. Rebuild from `config.example.json` |
-| `... is not a valid week file` | The agent's file has the wrong shape. The listed problems say what to fix; `python3 sync.py validate --week FILE` re-checks |
+| `No password found for target '<name>'` | Store it with the command printed below the message (keychain service `time-assistant:<name>`, account `password`) |
+| `uses the old single-TimeKeeper format` | Run `python3 sync.py migrate-config` once |
+| `config.json is not valid JSON` | Curly or single quotes, a missing comma. Compare with `config.example.json` |
+| `config.json has N problem(s)` | The list says what to fix; `python3 sync.py check-config` re-checks |
+| `... is not a valid week file` | The agent's file has the wrong shape. `python3 sync.py validate --week FILE` re-checks |
 | `WEEK NOT APPROVED` | Approve the week in the source system, export again |
-| `no complete mapping in config.json` | Add the activity or expense type to `time_map` / `expense_map` |
-| HTTP 404 reading registrations | Handled as "no rows yet"; a 404 on a write still fails loudly |
+| `only takes entries with status ...` | That target is stricter; wait, or write the others with `--target` |
+| `has no mapping in time_map of target` | Add the activity or expense type to that target's `time_map` / `expense_map` |
+| Something specific to one system | See its page under [docs/targets/](docs/targets/) |
 
-## Development
+## Contributing
+
+New targets, fixes and docs are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md);
+for a new system, [docs/adding-a-target.md](docs/adding-a-target.md) walks through it and
+the shared contract tests tell you when it is done.
 
 ```bash
-python3 -m unittest discover -s tests -p "test_*.py"   # offline
+python3 -m unittest discover -s tests -p "test_*.py"   # offline, no accounts needed
 python3 tools/build_adapters.py                         # after editing docs/agent-playbook.md
 ```
 
 ## Security and privacy
 
 No credentials, tokens or personal data belong in this repository. `config.json`,
-`.tk_user` and `week-*.json` are git-ignored; they contain your IDs and work comments.
+`.tk_user` and `week-*.json` are git-ignored; they contain your ids and work comments.
 Review a dry run before every `apply`.
 
 ## License
 
-Apache License 2.0, see [LICENSE](LICENSE). Not affiliated with Kleer or TimeKeeper.
+Apache License 2.0, see [LICENSE](LICENSE). Not affiliated with Kleer, TimeKeeper or any
+other system mentioned here.

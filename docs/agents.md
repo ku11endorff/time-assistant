@@ -1,8 +1,8 @@
 # Using time-assistant with your AI agent
 
 The agent only does the **export**: read the week from your time system, check approval,
-write `week-YYYY-Www.json`. Posting to TimeKeeper is always done by `sync.py` on your own
-machine, after a dry run you confirm. So any agent works that can
+write `week-YYYY-Www.json`. Writing to your targets (TimeKeeper and any others) is always
+done by `sync.py` on your own machine, after a dry run you confirm. So any agent works that can
 
 1. read your source data (an MCP server or API connector, or data you paste or upload), and
 2. follow written instructions and hand you a JSON file (saved by the agent, or copied by you).
@@ -30,12 +30,13 @@ configured; menus change often.
 3. It must (a) name the exact dates, (b) stop with a clear message if any entry is not
    approved, (c) ask about receipts if an expense on your project has one, (d) produce a
    file that passes `python3 sync.py validate --week week-….json`.
-4. Run `./tk.sh plan --week week-….json` and read it before any `apply`.
+4. Run `python3 sync.py plan --week week-….json` and read it before any `apply`.
 
 If an agent cannot do (b), do not use it for this: the approval check in `sync.py` is
 the second line of defence, but the first should not be missing.
 
 ## Credentials
 
-Never paste your TimeKeeper password into an AI chat. The instructions tell agents to
-refuse it, and `tk.sh` reads it from your keychain on your own machine.
+Never paste a target's password or token into an AI chat. The instructions tell agents
+to refuse it, and `sync.py` reads it from your keychain on your own machine
+([configuration.md](configuration.md#secrets)).

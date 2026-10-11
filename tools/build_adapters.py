@@ -14,7 +14,7 @@ NOTE = ("<!-- GENERATED from docs/agent-playbook.md by tools/build_adapters.py. 
 
 SKILL_FRONT = """---
 name: time-assistant
-description: Export an approved week of time and expenses from the source time system (reference setup Kleer) into a week file that the local time-assistant script replicates into TimeKeeper. Use when the user asks to sync, replicate or copy their week to TimeKeeper.
+description: Export an approved week of time and expenses from the source time system (reference setup Kleer) into a week file that the local time-assistant script replicates into the user's other time reporting systems (targets such as TimeKeeper). Use when the user asks to sync, replicate or copy their week to another time system.
 ---
 """
 
@@ -22,7 +22,8 @@ AGENTS_HEAD = """# AGENTS.md
 
 Instructions for AI coding/automation agents that read `AGENTS.md` (OpenAI Codex, many
 other agents and IDEs). If you were asked to "sync the week", follow the playbook below.
-If you were asked to work on this repository, run the tests with
+If you were asked to work on this repository, follow `CONTRIBUTING.md` (adding a target:
+`docs/adding-a-target.md`), run the tests with
 `python3 -m unittest discover -s tests -p "test_*.py"`, regenerate the instruction files
 with `python3 tools/build_adapters.py` after editing `docs/agent-playbook.md`, and never
 commit `config.json`, `.tk_user` or `week-*.json` files (they are git-ignored on purpose).
