@@ -6,10 +6,13 @@ other agents and IDEs). If you were asked to "sync the week", follow the playboo
 If you were asked to work on this repository, follow `CONTRIBUTING.md` (adding a target:
 `docs/adding-a-target.md`), run the tests with
 `python3 -m unittest discover -s tests -p "test_*.py"`, regenerate the instruction files
-with `python3 tools/build_adapters.py` after editing `docs/agent-playbook.md`, and never
+with `python3 tools/build_adapters.py` after editing `docs/agent-playbook.md` (bump
+`PLAYBOOK_VERSION` in `time_assistant/week.py` if the agent's output changes), and never
 commit `config.json`, `.tk_user` or `week-*.json` files (they are git-ignored on purpose).
 
 # time-assistant: agent playbook
+
+Playbook version: 4
 
 You are helping a person who registers time and expenses **once**, in a source system
 (reference setup: **Kleer**), and needs the same data in one or more other systems, the
@@ -124,14 +127,23 @@ receipt in the source need no file.
 ## 6. Write and validate the file
 
 Write `week-<YYYY>-W<ww>.json` (shape in `schema/week.schema.json`) into the folder that
-holds `sync.py`. If you cannot write to that folder, print the full JSON in one code block
+holds `sync.py`. Start it with `"playbook_version": 4`, the version of these instructions,
+so `sync.py` can tell when they are out of date:
+
+```json
+{ "playbook_version": 4, "week": "2026-W41", "from": "2026-10-05", "to": "2026-10-11",
+  "time_events": [ ... ], "expenses": [ ... ] }
+```
+ If you cannot write to that folder, print the full JSON in one code block
 and tell the person to save it under that name there. Then run, or ask the person to run:
 
 ```
 python3 sync.py validate --week week-<YYYY>-W<ww>.json
 ```
 
-Fix every reported problem before handing over.
+Fix every reported problem before handing over. If `sync.py` warns that the playbook
+version does not match, tell the person: their copy of these instructions and their copy
+of time-assistant are from different versions (docs/updating.md).
 
 ## 7. Hand over
 

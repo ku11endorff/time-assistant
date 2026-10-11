@@ -8,6 +8,8 @@
 - [ ] `python3 tools/build_adapters.py --check`
 - [ ] Against a real account (say which system and what you ran), or only against fakes:
 - [ ] Changed or new data? The semantic table in `docs/data-convention.md` is updated
+- [ ] A line in `CHANGELOG.md` (and an Upgrading step if users must act)
+- [ ] Playbook changed what the agent writes? `PLAYBOOK_VERSION` bumped
 
 ## New target? (see docs/adding-a-target.md)
 

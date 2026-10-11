@@ -128,6 +128,7 @@ row is missing a cell.
 | Mileage | — (left out, named to the person) | expense report entry, kind `mileage` | *not replicated* |
 | Absence | — (not exported) | absence | *not replicated* |
 | **System behaviour** | | | |
+| Version of the agent instructions | `playbook_version`; `sync.py` warns when it differs from what it expects | — | — |
 | Reading and writing | — | read by the agent (MCP connector or API); never written | REST API, `api2.timekeeper.se` |
 | Login | — | the agent's own connection | Basic Auth: `username` + keychain `password` |
 | Closed periods | — | — (only read) | per calendar month (`split_by_month`) |

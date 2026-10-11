@@ -13,7 +13,7 @@ never edit more than one file.
 
 | Agent | What to use | How it gets your data |
 |---|---|---|
-| **Claude** (desktop / web apps, Claude Code) | `integrations/claude/time-assistant/SKILL.md` as a skill. In Claude Code copy the folder to `~/.claude/skills/` (or `.claude/skills/` in a project). In the Claude apps add it through the skills settings | Kleer MCP connector; connect your project folder so the agent can write the week file there |
+| **Claude** (desktop / web apps, Claude Code) | `integrations/claude/time-assistant/SKILL.md` as a skill. In Claude Code **link** the folder (below), so `git pull` keeps it current. In the Claude apps upload the folder through the skills settings, and upload it again after updates that change the playbook | Kleer MCP connector; connect your project folder so the agent can write the week file there |
 | **ChatGPT / OpenAI Codex** and other agents that read `AGENTS.md` | `AGENTS.md` at the repo root is picked up automatically by agents that support it. For a Custom GPT or Project, paste `integrations/generic/instructions.md` into its instructions | A connector/MCP for your time system if your plan offers one; otherwise export the week from the time system and upload or paste it, and save the JSON the agent returns |
 | **GitHub Copilot** (agent mode in your editor) | `.github/copilot-instructions.md` is read automatically from the repo | Needs a tool that can read your time system; otherwise paste an export |
 | **Microsoft Copilot** (Copilot Studio agents and similar) | Paste `integrations/generic/instructions.md` into the agent's instructions | Via a connector or action you configure for your time system, or pasted data |
@@ -22,6 +22,27 @@ never edit more than one file.
 
 Check each agent's own documentation for where instructions, skills or connectors are
 configured; menus change often.
+
+### Claude Code: link the skill, don't copy it
+
+Run this once from the time-assistant folder:
+
+```bash
+mkdir -p ~/.claude/skills
+ln -sfn "$PWD/integrations/claude/time-assistant" ~/.claude/skills/time-assistant
+```
+
+A link always points at the files in your checkout, so every `git pull` updates the skill
+as well. If you copied the folder before, remove the copy first
+(`rm -r ~/.claude/skills/time-assistant`), then run the two lines above. For one project
+only, link into `.claude/skills/` inside that project instead.
+
+### Keeping instructions current
+
+Instructions that are copied or pasted into an agent do not change when you update
+time-assistant. Every week file says which playbook version made it, and `sync.py` warns
+when that differs from what it expects; [updating.md](updating.md) lists what to refresh
+for each agent.
 
 ## First test with a new agent
 

@@ -176,22 +176,28 @@ exported.
 removed in the source are kept (WARN) unless the target has `delete_stale` on. Details:
 [docs/data-convention.md](docs/data-convention.md).
 
-## Upgrading from the single-TimeKeeper version
+## Updating
 
 ```bash
-python3 sync.py migrate-config      # converts config.json, keeps config.json.bak-v1
+python3 sync.py version          # where you are
+git pull                         # or "Sync fork" on GitHub first
+python3 sync.py check-config     # ERROR must be fixed; NOTE = optional new features
 ```
 
-Then store the password again under the new name it prints (keychain service
-`time-assistant:timekeeper`). Rows already in TimeKeeper keep matching: their old
-`[kleer:t:…]` tags are still recognised and not rewritten. `tk.sh` is no longer needed;
-it still works for one release and then goes away.
+Then read the **Upgrading** notes in [CHANGELOG.md](CHANGELOG.md) for each version you
+skipped, and refresh your agent's instructions if the playbook changed. `sync.py` warns
+when a week file was exported with outdated instructions. Step by step, per agent:
+[docs/updating.md](docs/updating.md).
+
+Coming from the single-TimeKeeper version (0.1)? `python3 sync.py migrate-config`
+converts `config.json` once and keeps a backup; [CHANGELOG.md](CHANGELOG.md#020---2026-10-11)
+has the rest.
 
 ## Repository layout
 
 | Path | Purpose |
 |---|---|
-| `sync.py` | The command: validate, check-config, discover, plan, apply. Standard library only |
+| `sync.py` | The command: version, validate, check-config, discover, plan, apply. Standard library only |
 | `time_assistant/` | The code: `engine.py` (target-independent), `targets/` (one module per target), config, week file, credentials |
 | `Sync.command` | macOS double-click launcher: dry run, confirm, write, verify |
 | `config.example.json` | Template for your private `config.json` |
@@ -202,6 +208,7 @@ it still works for one release and then goes away.
 | `docs/configuration.md` | Every field of `config.json` |
 | `docs/targets/` | One setup page per target |
 | `docs/adding-a-target.md` | How to add a target |
+| `CHANGELOG.md`, `docs/updating.md` | What changed in each version, and how to update |
 | `docs/data-convention.md` | Source → week file, how rows are recognised, and the semantic table: every piece of data in every system |
 | `AGENTS.md`, `.github/copilot-instructions.md`, `integrations/` | Generated from the playbook by `tools/build_adapters.py` |
 | `tests/` | Offline tests; `tests/target_contract.py` is the suite every target must pass |

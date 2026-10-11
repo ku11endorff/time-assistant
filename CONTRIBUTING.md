@@ -31,9 +31,9 @@ The tests are offline and need no accounts: targets are tested against fakes of 
 |---|---|
 | A new target | [docs/adding-a-target.md](docs/adding-a-target.md); this includes a new column in the [semantic table](docs/data-convention.md#semantic-data-convention-across-systems) of `docs/data-convention.md` |
 | Behaviour shared by all targets | `time_assistant/engine.py`, tested in `tests/test_engine.py` (and `tests/target_contract.py` if it is something every target must do) |
-| `config.json` fields | `time_assistant/config.py`, `config.example.json`, `docs/configuration.md` |
+| `config.json` fields | `time_assistant/config.py`, `config.example.json`, `docs/configuration.md`. A new *optional* field also gets a `NOTE` in `config.feature_notes()`, so people who update learn it exists |
 | Week file | `time_assistant/week.py`, `schema/week.schema.json`, `docs/data-convention.md` (a new field also gets a row in the semantic table, filled for every system) |
-| Agent instructions | `docs/agent-playbook.md` only, then `python3 tools/build_adapters.py` to regenerate `AGENTS.md`, `.github/copilot-instructions.md` and `integrations/` |
+| Agent instructions | `docs/agent-playbook.md` only, then `python3 tools/build_adapters.py` to regenerate `AGENTS.md`, `.github/copilot-instructions.md` and `integrations/`. If the change affects what the agent writes, bump `PLAYBOOK_VERSION` in `time_assistant/week.py` and the two numbers in the playbook (tests check they match), and say so in the changelog |
 
 ## The semantic data table
 
@@ -56,9 +56,32 @@ a cell.
 
 - One topic per pull request; describe what you tested against a real account and what
   only against fakes.
+- Add a line under `## [Unreleased]` at the top of [CHANGELOG.md](CHANGELOG.md) (add the
+  heading if it is not there) for anything a user would notice, and an **Upgrading** step
+  if they have to do something.
 - `python3 -m unittest discover -s tests -p "test_*.py"` and
   `python3 tools/build_adapters.py --check` pass (CI runs both on Python 3.9 and 3.12).
 - Update the docs that describe what you changed.
+
+## Releasing
+
+For maintainers. Versions follow `MAJOR.MINOR.PATCH`; while the project is `0.x`, a minor
+version may change the config format, always with an Upgrading note and, where possible, a
+`migrate-config` step.
+
+1. In a pull request: set `__version__` in `time_assistant/__init__.py`, and in
+   [CHANGELOG.md](CHANGELOG.md) rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`,
+   with an `Agent playbook: N` line and an `### Upgrading` list (tests check both).
+2. Merge it, then tag the merge commit on `main` and push the tag:
+
+   ```bash
+   git switch main && git pull
+   git tag vX.Y.Z && git push origin vX.Y.Z
+   ```
+
+3. The `release` workflow runs the tests, checks that the tag, `__version__` and the
+   changelog agree (`tools/release_notes.py`), and publishes a GitHub release with that
+   version's changelog section as its notes.
 
 ## License
 

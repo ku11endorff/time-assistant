@@ -9,12 +9,39 @@ import json
 
 from . import markers
 
+# Version of docs/agent-playbook.md. The agent copies it into every week file, so a week
+# exported with outdated instructions is noticed. Bump it whenever the playbook changes
+# what the agent writes, and update the number in the playbook (tests check they match).
+#   1 single TimeKeeper   2 targets   3 daily allowances   4 playbook_version in the file
+PLAYBOOK_VERSION = 4
+
 EXPENSE_KINDS = ("receipt", "allowance")
 ALLOWANCE_TYPES = ("domestic", "foreign")   # inrikes / utrikes traktamente
 
 
 def is_allowance(item: dict) -> bool:
     return item.get("kind", "receipt") == "allowance"
+
+
+def playbook_notice(week: dict) -> str | None:
+    """A warning when the week file was made with other agent instructions than this
+    version expects; None when they match."""
+    v = week.get("playbook_version")
+    if v is None:
+        return ("this week file has no playbook_version: your agent follows instructions from "
+                "before time-assistant 0.4.0 and may leave out newer data, such as daily "
+                "allowances. Refresh its instructions (docs/updating.md).")
+    if not isinstance(v, int) or isinstance(v, bool):
+        return None   # reported by validate_week
+    if v < PLAYBOOK_VERSION:
+        return (f"this week file was made with agent playbook {v}, but this version of "
+                f"time-assistant uses playbook {PLAYBOOK_VERSION}. Refresh your agent's "
+                f"instructions (docs/updating.md); CHANGELOG.md says what changed.")
+    if v > PLAYBOOK_VERSION:
+        return (f"this week file was made with agent playbook {v}, newer than this "
+                f"time-assistant (playbook {PLAYBOOK_VERSION}). Update time-assistant "
+                f"(docs/updating.md).")
+    return None
 
 
 def load(path: str) -> dict:
@@ -47,6 +74,9 @@ def validate_week(week) -> list[str]:
     for k in ("time_events", "expenses"):
         if not isinstance(week.get(k), list):
             errs.append(f"'{k}' must be a list (use [] when empty)")
+    pv = week.get("playbook_version")
+    if pv is not None and (isinstance(pv, bool) or not isinstance(pv, int)):
+        errs.append("'playbook_version' must be a whole number, copied from the agent playbook")
     rng = (week.get("from"), week.get("to"))
 
     def in_range(d):
