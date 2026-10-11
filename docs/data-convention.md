@@ -1,52 +1,59 @@
-# Data convention: source system ↔ TimeKeeper
+# Data convention
 
-Reference source system: **Kleer**. Every ID below is a made-up example; yours go into
-`config.json` (see `config.example.json`).
+The week file is the only thing that crosses from the source side to the target side.
+This page covers the source side (how the agent fills the week file) and the rules every
+target follows to recognise its rows. How each target stores the data is on its own page
+under [targets/](targets/).
 
-## Time entries → `TimeRegistration`
+## Source → week file
 
-| Source field (Kleer `listEvents`) | Meaning | TimeKeeper field | Rule |
-|---|---|---|---|
-| `id.id` | Event id | marker in `comment` | `[kleer:t:<id>]`. The key used to find, update and never duplicate the row |
-| `date` | Work date | `date` | Copied as `yyyy-mm-dd` |
-| `hours` | Decimal hours, e.g. `7.50` | `hours` + `minutes` | Split into whole hours and minutes (7.5 → 7 h 30 min) |
-| `comment` | **External** comment | `comment` | Copied, marker appended. If empty: the `comment` text of the matching `time_map` entry if set, otherwise the marker only |
-| `internal-comment` | Internal comment | n/a | Never exported, never copied |
-| `activity.id` (e.g. 1001) | Source activity | `activityID` (e.g. 201) and `timeCodeID` (e.g. 301) | `config.json` → `time_map`. An unmapped activity is a blocking error |
-| `client-project.id` (e.g. 1000001) | Source project | `projectID` (e.g. 5001) | Not mapped per row: one scope in `config.json` → `scope`. Every other project is ignored |
-| (the user) | Source user | `userID` (e.g. 100) | `config.json` → `timekeeper_user_id` |
-| `status.type` | `Open`, `Approved`, `Certified` | n/a | Approval gate only (`config.json` → `approval`). Not sent to TimeKeeper |
-| `invoiceable`, `invoiced-*` | Source invoicing state | `isInvoiced` | Not forwarded, always `false` |
-| the week | Monday–Sunday | n/a | Split by calendar month before posting |
+Reference source system: **Kleer**. Shape: [`schema/week.schema.json`](../schema/week.schema.json);
+`python3 sync.py validate --week FILE` checks it offline. Every id below is a made-up example.
 
-## Expenses → `ExpenseRegistration`
+### Time entries (`time_events`)
 
-| Source field (Kleer receipt entry) | Meaning | TimeKeeper field | Rule |
-|---|---|---|---|
-| `<expense nr>-<entry id>` | Entry id | marker in `comment` | `[kleer:e:<id>]` |
-| `date` | Receipt date | `date` | Copied |
-| `description` | Description | `comment` | Copied, marker appended |
-| `amount_ore` | Total **incl. VAT**, minor units | `price`, `quantity` | `price = amount_ore / 100`, `quantity = 1` |
-| `vat_ore` | VAT part | n/a | Not forwarded |
-| `expense_type` | Expense type | `wagecodeID` | `config.json` → `expense_map` (per type, else `default`) |
-| project the entry is re-invoiced to | Source project | `projectID` | Only entries on the configured project are replicated |
-| receipt file | Receipt exists | file on the expense | The user-confirmed local file is uploaded to `/api/v1/File/ExpenseRegistrationFile` |
-| mileage / allowance entries | | n/a | Not synced |
+| Source field (Kleer `listEvents`) | Week file | Rule |
+|---|---|---|
+| `id.id` | `id` | Stable id in the source; letters, digits, `-`, `_` only |
+| `date` | `date` | `yyyy-mm-dd`, inside `from`..`to` |
+| `hours` (string, e.g. `"7.50"`) | `hours` | Decimal number, e.g. `7.5` |
+| `activity.id` | `activity_id` | Mapped per target by `time_map` |
+| `client-project.id` (absent → `null`) | `project_id` | Decides which targets get the entry (`source_project_ids`). Never relabelled |
+| `status.type` | `status` | Copied exactly (`Open`, `Approved`, `Certified`); used by the approval gate, never sent to a target |
+| `comment` (**external**) | `comment` | Sent to targets |
+| `internal-comment` | n/a | **Never exported** |
 
-## Identity and idempotency
+Export **every** entry of the week on every project; `sync.py` does the routing and lists
+what no target takes.
+
+### Expenses (`expenses`)
+
+| Source field (Kleer receipt entry) | Week file | Rule |
+|---|---|---|
+| `<expense nr>-<entry id>` | `id` | e.g. `"5-1"` |
+| `date` | `date` | Receipt date |
+| `description` | `description` | Sent to targets |
+| total incl. VAT | `amount_ore` | Integer, minor units (1/100 of the currency) |
+| expense type | `expense_type` | Mapped per target by `expense_map` (type, else `default`) |
+| project the entry is re-invoiced to | `project_id` | `null` if none |
+| receipt exists | `has_receipt` | `true` → a confirmed local file is needed if a target takes receipts |
+| confirmed file | `receipt_file` | Absolute path on the person's own machine |
+| mileage / allowance entries | n/a | Not supported; left out and named to the person |
+
+### Another source system
+
+Only the export changes. Make your agent (or a script) write the same week file, keep the
+source's own approval wording in `status`, list the accepted words in `config.json` →
+`approval.accepted_statuses`, and set `source.name` so messages name your system.
+
+## Rows in targets
 
 | Concept | Convention |
 |---|---|
-| Row identity | Marker at the end of the TimeKeeper comment: `[kleer:t:<id>]` for time, `[kleer:e:<id>]` for expenses |
-| Re-run | Rows found by marker are updated if different and skipped if equal; nothing is duplicated |
-| Manual TimeKeeper rows (no marker) | Never edited or deleted. WARN if one shares project and day with a synced row |
-| Entry removed in the source | Kept in TimeKeeper with a WARN, unless `"delete_stale": true` |
-| Month boundary | A week spanning two months is posted as two independent batches |
-
-## Adding another source system
-
-Only the *export* changes. Make your agent (or script) write the same week file
-(`schema/week.schema.json`), keep the source's own approval wording in `status`, list the
-accepted words in `config.json` → `approval.accepted_statuses`, and keep the `kleer_*`
-config keys as the names for "source activity id / source project id". The marker prefix
-`kleer:` is historical and stays as it is so existing rows keep matching.
+| Row identity | A tag in the row, normally at the end of its comment: `[ta:t:<id>]` for time, `[ta:e:<id>]` for expenses |
+| Re-run | Rows found by tag are updated if different and skipped if equal; nothing is duplicated |
+| Rows typed by hand (no tag) | Never edited or deleted. WARN if one shares project and day with a new row |
+| Entry removed in the source (or moved to another project) | Kept with a WARN, unless the target has `"delete_stale": true` |
+| Incomplete mapping | Nothing is deleted while any entry of the target is unmapped |
+| Month boundary | For targets with `split_by_month`, each calendar month is a separate batch |
+| Older tags | `[kleer:t:<id>]` / `[kleer:e:<id>]` from earlier versions still match and are not rewritten only to change the prefix |
