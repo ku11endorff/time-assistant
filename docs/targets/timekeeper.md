@@ -60,6 +60,9 @@ Leave out `allowance_map` if this TimeKeeper should not receive traktamente, and
 
 ## Field mapping
 
+Side by side with the week file, Kleer and every other target: the
+[semantic table](../data-convention.md#semantic-data-convention-across-systems).
+
 ### Time entry → `TimeRegistration`
 
 | Week file | TimeKeeper | Rule |
