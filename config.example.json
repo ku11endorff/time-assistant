@@ -1,39 +1,51 @@
 {
-  "_comment": "Copy to config.json (git-ignored) and replace every value with your own IDs. Use `./tk.sh discover` for the TimeKeeper IDs. Straight quotes, numeric IDs only. The numbers below are made-up placeholders.",
+  "_comment": "Copy to config.json (git-ignored) and replace every value with your own ids. Field reference: docs/configuration.md. Straight quotes, numeric ids. Every number below is a made-up placeholder. Keys starting with _ are notes and are ignored.",
 
-  "timekeeper_user_id": 100,
-  "delete_stale": false,
+  "version": 2,
 
-  "approval": {
-    "required": true,
-    "accepted_statuses": ["Approved", "Certified"],
+  "source": {
+    "name": "Kleer",
     "rerun_hint": "run the export again",
     "_rerun_hint_note": "Optional. Ends the 'week not approved' error: 'Approve the week in Kleer, then <rerun_hint>.' Put your own way of re-running here, e.g. \"ask your agent to run the time-assistant skill again\"."
   },
 
-  "scope": {
-    "_note": "Only this ONE source project is replicated, into this ONE TimeKeeper project. Everything else is ignored.",
-    "kleer_project_nr": "100",
-    "kleer_project_id": 1000001,
-    "_kleer_name": "Example Client // Consulting engagement",
-    "tk_project_id": 5001,
-    "_tk_name": "Consulting engagement (use the INTERNAL id from `discover`, not the project number)"
+  "approval": {
+    "required": true,
+    "accepted_statuses": ["Approved", "Certified"]
   },
 
-  "time_map": [
+  "targets": [
     {
-      "kleer_activity_id": 1001,
-      "_kleer_activity_name": "Consulting",
-      "tk_activity_id": 201,
-      "tk_timecode_id": 301,
-      "comment": ""
-    }
-  ],
+      "name": "client",
+      "type": "timekeeper",
+      "_note": "One entry per system that should receive copies. Setup for this type: docs/targets/timekeeper.md. Run `python3 sync.py discover` for the ids.",
+      "username": "you@example.com",
+      "source_project_ids": [1000001],
+      "_source_project_name": "Example Client // Consulting engagement",
+      "delete_stale": false,
 
-  "expense_map": {
-    "default": {
-      "tk_wagecode_id": 401,
-      "_note": "There is no list endpoint for wage codes: copy wagecodeID from an existing expense row in TimeKeeper."
+      "settings": {
+        "user_id": 100,
+        "project_id": 5001,
+        "_project_name": "Consulting engagement (the INTERNAL id from `discover`, not the project number)"
+      },
+
+      "time_map": [
+        {
+          "source_activity_id": 1001,
+          "_source_activity_name": "Consulting",
+          "activity_id": 201,
+          "timecode_id": 301,
+          "comment": ""
+        }
+      ],
+
+      "expense_map": {
+        "default": {
+          "wagecode_id": 401,
+          "_note": "TimeKeeper has no list endpoint for wage codes: copy wagecodeID from an existing expense row."
+        }
+      }
     }
-  }
+  ]
 }
