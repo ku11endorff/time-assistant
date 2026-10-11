@@ -8,6 +8,7 @@
 | Time | ✓ `TimeRegistration` |
 | Expenses | ✓ `ExpenseRegistration` |
 | Receipts | ✓ uploaded to `/api/v1/File/ExpenseRegistrationFile` |
+| Allowances (traktamente) | ✓ `ExpenseRegistration` with the inrikes or utrikes traktamente wage code |
 | Month split | yes: each calendar month is written and verified separately |
 | Login | Basic Auth: `username` in config.json, `password` in the keychain |
 | Status | beta: reading and dry runs are used for real; expense writes and receipt upload are tested offline against a fake TimeKeeper |
@@ -23,7 +24,7 @@
    ```
 
 3. Run `python3 sync.py discover --target client`. It prints your user, the ongoing
-   projects, activities and time codes. Fill in:
+   projects, activities, time codes and wage codes. Fill in:
 
    | config.json | From `discover` |
    |---|---|
@@ -31,7 +32,12 @@
    | `settings.project_id` | the **first column** of the project list: the internal id, not the project number |
    | `time_map[].activity_id` | the activity |
    | `time_map[].timecode_id` | the time code that belongs to that activity |
-   | `expense_map.*.wagecode_id` | not listed by the API: copy `wagecodeID` from an existing expense row, or ask your TimeKeeper administrator |
+   | `expense_map.*.wagecode_id` | the wage code for that kind of expense |
+   | `allowance_map.domestic.wagecode_id` | the wage code for *inrikes traktamente* (under *Övrigt* in TimeKeeper) |
+   | `allowance_map.foreign.wagecode_id` | the wage code for *utrikes traktamente* |
+
+   If your account may not list wage codes, `discover` says so; then copy `wageCodeID`
+   from an existing expense row or ask your TimeKeeper administrator.
 
 4. Optional: `settings.base_url` if your TimeKeeper is not on `https://api2.timekeeper.se`.
 5. `python3 sync.py check-config`.
@@ -44,9 +50,13 @@
   "source_project_ids": [1000001],
   "settings": { "user_id": 100, "project_id": 5001 },
   "time_map": [ { "source_activity_id": 1001, "activity_id": 201, "timecode_id": 301 } ],
-  "expense_map": { "default": { "wagecode_id": 401 } }
+  "expense_map": { "default": { "wagecode_id": 401 } },
+  "allowance_map": { "domestic": { "wagecode_id": 501 }, "foreign": { "wagecode_id": 502 } }
 }
 ```
+
+Leave out `allowance_map` if this TimeKeeper should not receive traktamente, and
+`expense_map` if it should not receive expenses at all.
 
 ## Field mapping
 
@@ -72,6 +82,19 @@
 | `amount_ore` | `price`, `quantity` | `price = amount_ore / 100`, `quantity = 1` |
 | `expense_type` | `wagecodeID` | Via `expense_map` (type, else `default`) |
 | `receipt_file` | attached file | Uploaded once; a file with the same name is not uploaded again |
+
+### Allowance (traktamente) → `ExpenseRegistration`
+
+In TimeKeeper's own screens this is an *Övrigt* row with the wage code (lönekod) set to
+inrikes or utrikes traktamente.
+
+| Week file | TimeKeeper | Rule |
+|---|---|---|
+| `id` | tag in `comment` | `[ta:e:<id>]` |
+| `date` | `date` | Copied |
+| `description` | `comment` | Copied, tag appended |
+| `allowance_type` | `wagecodeID` | `allowance_map.domestic` or `allowance_map.foreign` |
+| `amount_ore` | `price`, `quantity` | One row with the source's total: `price = amount_ore / 100`, `quantity = 1` |
 
 ## Behaviour worth knowing
 

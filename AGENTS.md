@@ -77,7 +77,7 @@ List the open entries (date, hours, project) and ask the person to approve the w
 run you again. If the period has no time entries at all, say so instead of writing an
 empty file.
 
-## 4. Read the expenses
+## 4. Read the expenses and allowances
 
 Kleer: list expenses for the period, then fetch each expense report. For every entry of
 kind `receipt` write:
@@ -89,8 +89,24 @@ kind `receipt` write:
 ```
 
 `amount_ore` is the total **including VAT** in minor units; `project_id` is the project the
-entry is re-invoiced to (`null` if none). Mileage and allowance entries are not supported:
-leave them out and tell the person which ones to register by hand.
+entry is re-invoiced to (`null` if none).
+
+For every entry of kind `allowance` (traktamente, daily allowance for a business trip)
+write the same kind of object with `"kind": "allowance"`:
+
+```json
+{ "id": "<expense nr>-<entry id>", "kind": "allowance", "allowance_type": "domestic",
+  "date": "2026-10-06", "description": "Client workshop, Gothenburg",
+  "amount_ore": 58000, "project_id": 1000001, "has_receipt": false }
+```
+
+`allowance_type` is `domestic` for a trip within the country (Kleer: *Inrikes*) and
+`foreign` for a trip abroad (Kleer: *Utrikes*). If the source does not make it clear, ask
+the person; never guess. `amount_ore` is the allowance amount the source calculated.
+Allowances have no receipt.
+
+Mileage entries are not supported: leave them out and tell the person which ones to
+register by hand.
 
 ## 5. Receipts (ask, only for expenses on a replicated project)
 
@@ -119,9 +135,9 @@ Fix every reported problem before handing over.
 
 ## 7. Hand over
 
-Give a one-line summary: days and hours on the replicated projects, number of expenses
-and receipts matched, and how many entries/hours lie outside every target (they will be
-ignored). Then tell the person to run the dry run and, once they have read it, the real
+Give a one-line summary: days and hours on the replicated projects, number of expenses,
+receipts matched and allowances (domestic/foreign), and how many entries/hours lie
+outside every target (they will be ignored). Then tell the person to run the dry run and, once they have read it, the real
 run:
 
 ```

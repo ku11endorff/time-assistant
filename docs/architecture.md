@@ -70,7 +70,7 @@ implements a handful of methods. Full docstrings are in
 | Declared | Meaning |
 |---|---|
 | `type`, `display_name` | `"timekeeper"` in config.json, `"TimeKeeper"` in output |
-| `supports_expenses`, `supports_receipts` | What the system can store; the engine reports what it skips |
+| `supports_expenses`, `supports_receipts`, `supports_allowances` | What the system can store; the engine reports what it skips |
 | `split_by_month` | Plan, write and verify each calendar month separately |
 | `needs_username`, `secrets` | `username` comes from config.json; secrets (`password`, `token`) from the keychain |
 | `required_settings`, `time_map_fields`, `expense_map_fields` | Checked offline by `check-config` |

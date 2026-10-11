@@ -38,7 +38,24 @@ what no target takes.
 | project the entry is re-invoiced to | `project_id` | `null` if none |
 | receipt exists | `has_receipt` | `true` → a confirmed local file is needed if a target takes receipts |
 | confirmed file | `receipt_file` | Absolute path on the person's own machine |
-| mileage / allowance entries | n/a | Not supported; left out and named to the person |
+| entry kind | `kind` | `receipt` (default) or `allowance` |
+| mileage entries | n/a | Not supported; left out and named to the person |
+
+### Daily allowances (traktamente)
+
+Kleer allowance entries go into `expenses` too, with `"kind": "allowance"`:
+
+| Source field (Kleer allowance entry) | Week file | Rule |
+|---|---|---|
+| `<expense nr>-<entry id>` | `id` | Same form as receipts |
+| type of trip: *Inrikes* / *Utrikes* | `allowance_type` | `domestic` / `foreign`; picks the target's `allowance_map` entry. Ask the person if unclear |
+| `date` | `date` | As the source gives it |
+| `description` (purpose) | `description` | Sent to targets |
+| calculated allowance | `amount_ore` | The amount the source calculated (tax-free part), minor units |
+| project it is re-invoiced to | `project_id` | Decides which targets get it |
+| | `has_receipt` | Always `false` |
+
+Each target takes allowances only if it has an `allowance_map` entry for the type.
 
 ### Another source system
 

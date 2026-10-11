@@ -33,6 +33,19 @@ class ValidateTests(unittest.TestCase):
                           "project_id": None, "has_receipt": False}]
         self.assertTrue(any("amount_ore" in e for e in validate_week(w)))
 
+    def test_allowances(self):
+        ok = {"id": "6-1", "kind": "allowance", "allowance_type": "foreign", "date": "2026-10-06",
+              "amount_ore": 58000, "project_id": 1000001, "has_receipt": False}
+        w = copy.deepcopy(WEEK)
+        w["expenses"] = [ok]
+        self.assertEqual(validate_week(w), [])
+        w["expenses"] = [dict(ok, id="6-2", allowance_type="abroad"),
+                         dict(ok, id="6-3", has_receipt=True),
+                         dict(ok, id="6-4", kind="mileage")]
+        errs = " | ".join(validate_week(w))
+        for needle in ("'allowance_type' \"domestic\"", "an allowance has no receipt", "'kind' must be"):
+            self.assertIn(needle, errs)
+
     def test_shape_errors(self):
         self.assertEqual(validate_week([]), ["week file must be a JSON object"])
         errs = " | ".join(validate_week({"from": "x"}))

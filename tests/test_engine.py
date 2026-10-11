@@ -7,8 +7,8 @@ import tempfile
 import unittest
 
 import _paths  # noqa: F401  (puts the repo root on sys.path)
-from fake_target import (WEEK, MemoryBackend, MemoryTarget, cfg, expense, ops, target_cfg,
-                         w40, week)
+from fake_target import (WEEK, MemoryBackend, MemoryTarget, allowance, cfg, expense, ops,
+                         target_cfg, w40, week)
 from target_contract import TargetContract
 from time_assistant import engine
 from time_assistant import targets as registry
@@ -305,6 +305,58 @@ class CapabilityTests(unittest.TestCase):
         self.assertEqual(code, 0, out)
         self.assertIn("expense #5-1 not replicated: Basic does not take expenses", out)
         self.assertEqual(len(h.rows("client")), 5)
+
+
+class AllowanceTests(unittest.TestCase):
+    MAP = {"domestic": {"code": "DOM"}, "foreign": {"code": "FOR"}}
+
+    def test_each_type_uses_its_own_wage_code(self):
+        h = Harness()
+        w = week(expenses=[allowance("6-1", type_="domestic"), allowance("6-2", type_="foreign")])
+        out, code = h.run(cfg(target_cfg(allowance_map=self.MAP)), w)
+        self.assertEqual(code, 0, out)
+        rows = {r["comment"]: r for r in h.rows("client", "expense")}
+        self.assertEqual(rows["Client workshop, Gothenburg [ta:e:6-1]"]["code"], "DOM")
+        self.assertEqual(rows["Client workshop, Gothenburg [ta:e:6-2]"]["code"], "FOR")
+        self.assertEqual(rows["Client workshop, Gothenburg [ta:e:6-1]"]["value"], 58000)
+        self.assertIn("CREATE  2026-10-06 allowance #6-1", out)
+
+    def test_without_allowance_map_they_are_listed_not_written(self):
+        h = Harness()
+        out, code = h.run(cfg(), week(expenses=[allowance(), expense()]))
+        self.assertEqual(code, 0, out)
+        self.assertIn("allowance #6-1 not replicated: no allowance_map entry for domestic allowances", out)
+        self.assertEqual([r["code"] for r in h.rows("client", "expense")], ["E"])   # the receipt only
+
+    def test_never_falls_back_to_the_receipt_default(self):
+        h = Harness()
+        t = target_cfg(allowance_map={"domestic": {"code": "DOM"}})
+        out, code = h.run(cfg(t), week(expenses=[allowance(type_="foreign")]))
+        self.assertIn("no allowance_map entry for foreign allowances", out)
+        self.assertEqual(h.rows("client", "expense"), [])
+
+    def test_allowances_without_receipts(self):
+        h = Harness()
+        t = target_cfg(expense_map={}, allowance_map=self.MAP)
+        out, code = h.run(cfg(t), week(expenses=[allowance(), expense()]))
+        self.assertEqual(code, 0, out)
+        self.assertIn("expense #5-1 not replicated: target 'client' has no expense_map", out)
+        self.assertEqual([r["code"] for r in h.rows("client", "expense")], ["DOM"])
+
+    def test_target_that_does_not_take_allowances(self):
+        h = Harness()
+        out, code = h.run(cfg(target_cfg(type_="memory-receipts")), week(expenses=[allowance(), expense()]))
+        self.assertEqual(code, 0, out)
+        self.assertIn("allowance #6-1 not replicated: ReceiptsOnly does not take allowances", out)
+        self.assertEqual(len(h.rows("client", "expense")), 1)
+
+    def test_allowance_is_routed_by_its_project_like_any_expense(self):
+        h = Harness()
+        two = cfg(target_cfg(allowance_map=self.MAP),
+                  target_cfg(name="other", project="P7", source_projects=[777], allowance_map=self.MAP))
+        out, code = h.run(two, week(expenses=[allowance(project=777)]))
+        self.assertEqual(code, 0, out)
+        self.assertEqual((len(h.rows("client", "expense")), len(h.rows("other", "expense"))), (0, 1))
 
 
 class ReceiptTests(unittest.TestCase):

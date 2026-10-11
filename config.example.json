@@ -43,8 +43,14 @@
       "expense_map": {
         "default": {
           "wagecode_id": 401,
-          "_note": "TimeKeeper has no list endpoint for wage codes: copy wagecodeID from an existing expense row."
+          "_note": "Wage codes are listed by `python3 sync.py discover`."
         }
+      },
+
+      "allowance_map": {
+        "_note": "Optional: replicate traktamente (daily allowances). Leave this out and allowances are listed but not written. In TimeKeeper these are the 'Övrigt' wage codes for inrikes and utrikes traktamente.",
+        "domestic": { "wagecode_id": 501, "_name": "Inrikes traktamente" },
+        "foreign":  { "wagecode_id": 502, "_name": "Utrikes traktamente" }
       }
     }
   ]

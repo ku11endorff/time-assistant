@@ -9,6 +9,13 @@ import json
 
 from . import markers
 
+EXPENSE_KINDS = ("receipt", "allowance")
+ALLOWANCE_TYPES = ("domestic", "foreign")   # inrikes / utrikes traktamente
+
+
+def is_allowance(item: dict) -> bool:
+    return item.get("kind", "receipt") == "allowance"
+
 
 def load(path: str) -> dict:
     with open(path, encoding="utf-8") as f:
@@ -92,4 +99,13 @@ def validate_week(week) -> list[str]:
                         f"(amount incl. VAT in 1/100 currency units)")
         if not isinstance(x.get("has_receipt", False), bool):
             errs.append(f"{w}: 'has_receipt' must be true or false")
+        kind = x.get("kind", "receipt")
+        if kind not in EXPENSE_KINDS:
+            errs.append(f"{w}: 'kind' must be \"receipt\" or \"allowance\"")
+        elif kind == "allowance":
+            if x.get("allowance_type") not in ALLOWANCE_TYPES:
+                errs.append(f"{w}: an allowance needs 'allowance_type' \"domestic\" (inrikes) "
+                            f"or \"foreign\" (utrikes)")
+            if x.get("has_receipt"):
+                errs.append(f"{w}: an allowance has no receipt; set 'has_receipt' to false")
     return errs
