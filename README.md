@@ -229,4 +229,4 @@ Review a dry run before every `apply`.
 
 ## License
 
-MIT, see [LICENSE](LICENSE). Not affiliated with Kleer or TimeKeeper.
+Apache License 2.0, see [LICENSE](LICENSE). Not affiliated with Kleer or TimeKeeper.
