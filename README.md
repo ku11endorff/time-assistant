@@ -202,7 +202,7 @@ it still works for one release and then goes away.
 | `docs/configuration.md` | Every field of `config.json` |
 | `docs/targets/` | One setup page per target |
 | `docs/adding-a-target.md` | How to add a target |
-| `docs/data-convention.md` | Source → week file, and how rows are recognised |
+| `docs/data-convention.md` | Source → week file, how rows are recognised, and the semantic table: every piece of data in every system |
 | `AGENTS.md`, `.github/copilot-instructions.md`, `integrations/` | Generated from the playbook by `tools/build_adapters.py` |
 | `tests/` | Offline tests; `tests/target_contract.py` is the suite every target must pass |
 

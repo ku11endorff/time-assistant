@@ -1,17 +1,19 @@
 # Adding a target
 
 A target is one system that receives copies of the approved week. Adding one touches
-three places and nothing else:
+these places and nothing else:
 
 | File | What |
 |---|---|
 | `time_assistant/targets/<type>.py` | The target: a `Target` subclass that talks to the system's API |
+| `time_assistant/targets/__init__.py` | One line: add the class to `BUILTIN` |
 | `tests/test_target_<type>.py` | A fake of the API, the shared contract suite, and your own specific tests |
 | `docs/targets/<type>.md` | The setup page: ids, field mapping, behaviour, troubleshooting |
+| `docs/data-convention.md` | **A new column** in the [semantic table](data-convention.md#semantic-data-convention-across-systems) at the end, with every row filled |
+| `README.md` | One row in the *Supported targets* table |
 
-Plus one line in `time_assistant/targets/__init__.py` (`BUILTIN`) and one row in the
-README's *Supported targets* table. `tests/test_registry.py` fails until the docs page
-and the contract tests exist, so CI tells you when the target is complete.
+`tests/test_registry.py` fails until the docs page, the semantic-table column and the
+contract tests exist, so CI tells you when the target is complete.
 
 Rules that hold for every target:
 
@@ -189,12 +191,30 @@ handling and pagination. Run everything:
 python3 -m unittest discover -s tests -p "test_*.py"
 ```
 
-## 4. The docs page
+## 4. The docs
 
-`docs/targets/example.md`, following [timekeeper.md](targets/timekeeper.md): what is
-supported, setup steps and where each id comes from, a config snippet, the field
-mapping, behaviour worth knowing, troubleshooting. Then add the row to the README's
-*Supported targets* table.
+Three places, all in the same pull request as the code:
+
+1. **The target's page**, `docs/targets/example.md`, following
+   [timekeeper.md](targets/timekeeper.md): what is supported, setup steps and where each id
+   comes from, a config snippet, the field mapping, behaviour worth knowing,
+   troubleshooting.
+2. **A column in the semantic table** at the end of
+   [data-convention.md](data-convention.md#semantic-data-convention-across-systems). It
+   shows, for every piece of data, what it is called in the week file, in Kleer and in
+   every target, so anyone can read across one row and see where a value ends up.
+   - Add the column on the right, headed `<display_name> (target)`, e.g.
+     `ExampleTime (target)`; the header must start with the target's `display_name`.
+   - Fill **every** row: the field name in your system and how it is filled (e.g.
+     `minutes` = `hours` × 60, or `task` via `time_map`). Use `—` when the system has no
+     such field, *not sent* when it has one that time-assistant leaves alone, and
+     *not replicated* for data your target does not take.
+   - Section rows (in bold) stay empty.
+   - If your system has a concept the table lacks (say, a billable flag you must set),
+     add a row and fill it for every column, using `—` where the others have nothing.
+   - `tests/test_registry.py` checks that the column exists and that no row is missing a
+     cell.
+3. **A row in the README's** *Supported targets* table.
 
 ## 5. Try it for real
 

@@ -11,6 +11,17 @@ from time_assistant import targets as registry
 from time_assistant.targets.base import Target
 
 
+def semantic_table():
+    """Header and rows of the cross-system table at the end of docs/data-convention.md."""
+    path = os.path.join(_paths.ROOT, "docs", "data-convention.md")
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    section = text.split("## Semantic data convention across systems", 1)[1]
+    lines = [ln.strip() for ln in section.splitlines() if ln.strip().startswith("|")]
+    cells = [[c.strip() for c in ln.strip("|").split("|")] for ln in lines]
+    return cells[0], cells[2:]          # skip the |---| separator
+
+
 class RegistryTests(unittest.TestCase):
     def test_builtin_targets_are_complete(self):
         for cls in registry.BUILTIN:
@@ -26,6 +37,22 @@ class RegistryTests(unittest.TestCase):
         for cls in registry.BUILTIN:
             path = os.path.join(_paths.ROOT, "docs", "targets", f"{cls.type}.md")
             self.assertTrue(os.path.isfile(path), f"missing {path}")
+
+    def test_builtin_targets_have_a_column_in_the_semantic_table(self):
+        header, rows = semantic_table()
+        for cls in registry.BUILTIN:
+            with self.subTest(target=cls.type):
+                self.assertTrue(any(cell.startswith(cls.display_name) for cell in header),
+                                f"docs/data-convention.md: add a '{cls.display_name} (target)' column "
+                                f"to the semantic table (docs/adding-a-target.md)")
+
+    def test_semantic_table_rows_are_complete(self):
+        header, rows = semantic_table()
+        for row in rows:
+            with self.subTest(row=row[0]):
+                self.assertEqual(len(row), len(header), "every row needs one cell per column")
+                if not row[0].startswith("**"):          # bold rows are section headings
+                    self.assertTrue(all(row), "fill every cell; use — if the system has no such field")
 
     def test_builtin_targets_run_the_contract_suite(self):
         for cls in registry.BUILTIN:
