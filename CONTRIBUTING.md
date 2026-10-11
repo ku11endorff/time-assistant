@@ -56,32 +56,44 @@ a cell.
 
 - One topic per pull request; describe what you tested against a real account and what
   only against fakes.
-- Add a line under `## [Unreleased]` at the top of [CHANGELOG.md](CHANGELOG.md) (add the
-  heading if it is not there) for anything a user would notice, and an **Upgrading** step
-  if they have to do something.
+- Every pull request is a release: tick Major, Minor or Patch in its description and bump
+  the version to match (see [Versioning](#versioning)).
 - `python3 -m unittest discover -s tests -p "test_*.py"` and
   `python3 tools/build_adapters.py --check` pass (CI runs both on Python 3.9 and 3.12).
 - Update the docs that describe what you changed.
 
+## Versioning
+
+Versions are `MAJOR.MINOR.PATCH`, and **every pull request bumps one of them**. The pull
+request template asks which; pick by what happens to someone who updates:
+
+| Bump | When | Examples |
+|---|---|---|
+| **Major** (x.0.0) | Existing setups must change something, or something stops working | A config format that needs `migrate-config`; a week-file change that makes older agent output fail `validate`; a removed command or option; row tags that no longer match rows already written; dropping a target |
+| **Minor** (0.x.0) | A new capability; existing setups keep working unchanged | A new target; a new optional config field; a new command; daily allowances; a new playbook version whose old week files still validate (with a `WARN`) |
+| **Patch** (0.0.x) | No new capability | A bug fix; docs; tests; CI or contributor process |
+
+When in doubt between two, take the bigger one. In the pull request:
+
+1. Tick exactly one of Major / Minor / Patch under **Version** in the description.
+2. Set `__version__` in `time_assistant/__init__.py` to the next version after `main`'s:
+   from 0.4.1, major → 1.0.0, minor → 0.5.0, patch → 0.4.2.
+3. Add a `## [X.Y.Z] - YYYY-MM-DD` section at the top of [CHANGELOG.md](CHANGELOG.md) with
+   an `Agent playbook: N` line, what changed, and an `### Upgrading` list ("Nothing to do."
+   if nothing).
+
+The `version` workflow (`tools/check_version.py`) fails the pull request if no box or more
+than one is ticked, if the version is not the next one for that bump, or if the changelog
+section is missing. If another pull request is merged first, update your branch from
+`main` and bump again from the new version.
+
 ## Releasing
 
-For maintainers. Versions follow `MAJOR.MINOR.PATCH`; while the project is `0.x`, a minor
-version may change the config format, always with an Upgrading note and, where possible, a
-`migrate-config` step.
-
-1. In a pull request: set `__version__` in `time_assistant/__init__.py`, and in
-   [CHANGELOG.md](CHANGELOG.md) rename `## [Unreleased]` to `## [X.Y.Z] - YYYY-MM-DD`,
-   with an `Agent playbook: N` line and an `### Upgrading` list (tests check both).
-2. Merge it, then tag the merge commit on `main` and push the tag:
-
-   ```bash
-   git switch main && git pull
-   git tag vX.Y.Z && git push origin vX.Y.Z
-   ```
-
-3. The `release` workflow runs the tests, checks that the tag, `__version__` and the
-   changelog agree (`tools/release_notes.py`), and publishes a GitHub release with that
-   version's changelog section as its notes.
+Nothing to do by hand. When a pull request is merged, the `release` workflow sees a new
+version on `main`, runs the tests, checks that version and changelog agree
+(`tools/release_notes.py`), and publishes a GitHub release with tag `vX.Y.Z` and that
+version's changelog section as its notes. It can also be started by hand from the
+repository's *Actions* tab.
 
 ## License
 

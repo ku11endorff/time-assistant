@@ -5,7 +5,7 @@
 
 Refuses when the version differs from time_assistant.__version__, has no section in
 CHANGELOG.md, or its section is still marked Unreleased. The release workflow
-(.github/workflows/release.yml) runs this for every pushed v* tag.
+(.github/workflows/release.yml) runs this for every new version merged to main.
 """
 import os
 import re

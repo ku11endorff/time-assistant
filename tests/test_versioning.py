@@ -141,5 +141,39 @@ class ReleaseTests(unittest.TestCase):
         self.assertNotIn("Several targets instead of one", body)
 
 
+class CheckVersionTests(unittest.TestCase):
+    def setUp(self):
+        self.tool = load_tool("check_version")
+        self.template = read(".github", "pull_request_template.md")
+
+    def tick(self, *bumps):
+        body = self.template
+        for b in bumps:
+            body = body.replace(f"- [ ] {b} (", f"- [x] {b} (", 1)
+        return body
+
+    def test_template_asks_and_parses(self):
+        self.assertIn("tick one of Major / Minor / Patch", self.tool.bump_from_body(self.template)[1])
+        for b in ("Major", "Minor", "Patch"):
+            self.assertEqual(self.tool.bump_from_body(self.tick(b)), (b.lower(), None))
+        self.assertIn("only one", self.tool.bump_from_body(self.tick("Minor", "Patch"))[1])
+        self.assertEqual(self.tool.bump_from_body("- [X] **Major**")[0], "major")
+        self.assertIn("tick one", self.tool.bump_from_body(None)[1])
+
+    def test_next_version(self):
+        self.assertEqual([self.tool.next_version("0.4.1", b) for b in ("major", "minor", "patch")],
+                         ["1.0.0", "0.5.0", "0.4.2"])
+        with self.assertRaises(ValueError):
+            self.tool.next_version("", "patch")
+
+    def test_version_must_match_the_ticked_bump(self):
+        changelog = read("CHANGELOG.md")
+        self.assertEqual(self.tool.problems(self.tick("Patch"), "0.4.0", "0.4.1", changelog), [])
+        wrong = self.tool.problems(self.tick("Minor"), "0.4.0", "0.4.1", changelog)
+        self.assertIn("is version 0.5.0", wrong[0])
+        missing = self.tool.problems(self.tick("Patch"), "0.4.1", "0.4.2", changelog)
+        self.assertTrue(any("no '## [0.4.2]" in p for p in missing))
+
+
 if __name__ == "__main__":
     unittest.main()

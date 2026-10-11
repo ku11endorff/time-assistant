@@ -8,6 +8,18 @@ Each version has an **Upgrading** list. Read it for every version between yours 
 new one. The agent playbook version is listed too: when it changes, refresh your agent's
 instructions.
 
+## [0.4.1] - 2026-10-11
+
+Agent playbook: 4
+
+### Changed
+- Every pull request now says whether it is a major, minor or patch change and bumps the
+  version to match; CI checks it, and merging publishes the GitHub release automatically
+  ([CONTRIBUTING.md](CONTRIBUTING.md#versioning)).
+
+### Upgrading
+- Nothing to do.
+
 ## [0.4.0] - 2026-10-11
 
 Agent playbook: 4
