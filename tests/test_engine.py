@@ -290,6 +290,15 @@ class MonthSplitTests(unittest.TestCase):
 
 
 class CapabilityTests(unittest.TestCase):
+    def test_target_without_expense_map_lists_expenses_instead_of_failing(self):
+        h = Harness()
+        two = cfg(target_cfg(), target_cfg(name="partner", project="P9", expense_map={}))
+        out, code = h.run(two, week(expenses=[expense()]))
+        self.assertEqual(code, 0, out)
+        self.assertIn("expense #5-1 not replicated: target 'partner' has no expense_map", out)
+        self.assertEqual((len(h.rows("client", "expense")), h.rows("partner", "expense")), (1, []))
+        self.assertEqual(len(h.rows("partner")), 5)
+
     def test_expenses_are_reported_when_a_target_does_not_take_them(self):
         h = Harness()
         out, code = h.run(cfg(target_cfg(type_="memory-basic")), week(expenses=[expense()]))

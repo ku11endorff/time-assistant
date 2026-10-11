@@ -161,6 +161,11 @@ def expense_mapping(tcfg, item):
     return emap.get(item.get("expense_type")) or emap.get("default")
 
 
+def takes_expenses(tcfg) -> bool:
+    """Expenses are opt-in per target: without an expense_map they are listed, not written."""
+    return any(not k.startswith("_") for k in (tcfg.get("expense_map") or {}))
+
+
 def _icloud_hint(path: str) -> str:
     """iCloud keeps not-yet-downloaded files as hidden '.<name>.icloud' placeholders."""
     d, n = os.path.split(path)
@@ -277,6 +282,11 @@ def plan_target(cfg, tcfg, target, week, allow_missing_receipts=False) -> list[P
         for x in routed["expenses"]:
             gate.add("warn", "expense", x["id"], f"{x['date']} expense #{x['id']} not replicated: "
                      f"{target.display_name} does not take expenses")
+    elif not takes_expenses(tcfg):
+        for x in routed["expenses"]:
+            gate.add("warn", "expense", x["id"], f"{x['date']} expense #{x['id']} not replicated: "
+                     f"target '{tcfg['name']}' has no expense_map")
+        routed["expenses"] = []
     if gate.errors:
         return [gate]
     segs = split_by_month(routed) if target.split_by_month else [dict(routed, month=None)]

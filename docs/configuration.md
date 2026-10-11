@@ -32,7 +32,7 @@ numeric ids.
 | `username` | if the type needs it | Login name; not a secret |
 | `settings` | per type | Account and project ids in the target, e.g. TimeKeeper's `user_id` and `project_id` |
 | `time_map` | yes | How source activities map to the target (below) |
-| `expense_map` | if the type takes expenses | How source expense types map (below) |
+| `expense_map` | no | How source expense types map (below). Leave it out (or empty) and this target's expenses are listed in the dry run but not written |
 | `accepted_statuses` | no | Stricter approval for this target only, e.g. `["Certified"]` |
 | `delete_stale` | no | `true` deletes rows whose source entry is gone. Default `false` (kept, with a WARN) |
 | `enabled` | no | `false` skips the target unless named with `--target`. Default `true` |
