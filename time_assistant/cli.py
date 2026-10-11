@@ -8,6 +8,7 @@ it, compares it with what each target already has, and creates or updates only w
 differs, after you have seen a dry run.
 
 Commands
+  version                Show this version, the agent playbook it expects, and the git state.
   validate --week FILE   Check the week file's structure. No network access.
   check-config           Check config.json. No network access.
   targets                List the target types this version can write to.
@@ -25,8 +26,10 @@ import argparse
 import json
 import os
 import shutil
+import subprocess
 import sys
 
+from . import __version__
 from . import config as conf
 from . import credentials, engine
 from . import targets as registry
@@ -38,6 +41,33 @@ def default_connect(tcfg: dict):
     return cls(tcfg, credentials.get_secrets(tcfg["name"], cls.secrets))
 
 
+def print_playbook_notice(week):
+    notice = weekfile.playbook_notice(week)
+    if notice:
+        print(f"  WARN    {notice}\n")
+
+
+def git_state() -> str | None:
+    """`git describe` of the checkout this code runs from, if it is a git checkout."""
+    root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    try:
+        r = subprocess.run(["git", "-C", root, "describe", "--tags", "--always", "--dirty"],
+                           capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return r.stdout.strip() if r.returncode == 0 and r.stdout.strip() else None
+
+
+def cmd_version(_args):
+    print(f"time-assistant {__version__}")
+    print(f"agent playbook {weekfile.PLAYBOOK_VERSION}  (week files should carry "
+          f"\"playbook_version\": {weekfile.PLAYBOOK_VERSION})")
+    state = git_state()
+    if state:
+        print(f"git checkout   {state}")
+    print("\nWhat changed: CHANGELOG.md   How to update: docs/updating.md")
+
+
 def cmd_validate(args):
     week = weekfile.load(args.week)
     errs = weekfile.validate_week(week)
@@ -46,6 +76,7 @@ def cmd_validate(args):
         for e in errs:
             print(f"  ERROR   {e}")
         raise SystemExit(1)
+    print_playbook_notice(week)
     print(f"{args.week}: valid ({len(week['time_events'])} time events, {len(week['expenses'])} expenses)")
 
 
@@ -55,6 +86,8 @@ def cmd_check_config(args):
         state = "" if conf.enabled(t) else "  (disabled)"
         print(f"  {t['name']}: {registry.TARGETS[t['type']].display_name}, source projects "
               f"{', '.join(map(str, t['source_project_ids']))}{state}")
+    for note in conf.feature_notes(cfg):
+        print(f"  NOTE    {note}")
     print(f"{args.config}: valid ({len(cfg['targets'])} target(s))")
 
 
@@ -86,6 +119,7 @@ def cmd_sync(args, apply: bool, connect):
             print(f"  ERROR   {p}")
         raise SystemExit(f"\n{args.week} is not a valid week file (see schema/week.schema.json). "
                          f"Nothing was written.")
+    print_playbook_notice(week)
     code = engine.run(cfg, week, connect, names=args.target, apply=apply,
                       allow_missing_receipts=args.allow_missing_receipts)
     if code:
@@ -135,6 +169,7 @@ def main(argv=None, connect=None):
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--config", default="config.json", help="default: config.json")
     sub = ap.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("version", help="show the version, the agent playbook it expects, and the git state")
     pv = sub.add_parser("validate", help="check a week file's structure, no network access")
     pv.add_argument("--week", required=True)
     sub.add_parser("check-config", help="check config.json, no network access")
@@ -151,7 +186,9 @@ def main(argv=None, connect=None):
     sub.add_parser("migrate-config", help="convert an old single-TimeKeeper config.json")
     args = ap.parse_args(argv)
 
-    if args.cmd == "validate":
+    if args.cmd == "version":
+        cmd_version(args)
+    elif args.cmd == "validate":
         cmd_validate(args)
     elif args.cmd == "check-config":
         cmd_check_config(args)

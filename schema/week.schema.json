@@ -6,6 +6,7 @@
   "type": "object",
   "required": ["from", "to", "time_events", "expenses"],
   "properties": {
+    "playbook_version": { "type": "integer", "minimum": 1, "description": "Version of the agent playbook that produced the file (docs/agent-playbook.md). sync.py warns when it differs from the version it expects." },
     "week": { "type": "string", "description": "Label only, e.g. 2026-W41." },
     "from": { "type": "string", "format": "date", "description": "First day of the period, yyyy-mm-dd." },
     "to": { "type": "string", "format": "date", "description": "Last day of the period (inclusive)." },

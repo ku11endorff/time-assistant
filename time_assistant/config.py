@@ -233,6 +233,38 @@ def check_target(t: dict, cls) -> list[str]:
 
 
 # --------------------------------------------------------------------------------------
+# optional features not in use
+# --------------------------------------------------------------------------------------
+def _keys(d) -> set:
+    return {k for k in (d or {}) if not k.startswith("_")}
+
+
+def feature_notes(cfg) -> list[str]:
+    """Optional features a target supports but this config does not use. Shown by
+    check-config so that people who update learn what they could switch on; never errors.
+    A new optional config key should add its note here (CONTRIBUTING.md)."""
+    notes = []
+    for t in cfg.get("targets") or []:
+        cls = registry.TARGETS.get(t.get("type"))
+        if cls is None or not isinstance(t, dict):
+            continue
+        name = t.get("name")
+        if cls.supports_expenses and not _keys(t.get("expense_map")):
+            notes.append(f"target '{name}': no expense_map, so expenses are listed but not "
+                         f"written (docs/configuration.md#expense_map)")
+        if cls.supports_allowances:
+            missing = [a for a in ALLOWANCE_TYPES if a not in _keys(t.get("allowance_map"))]
+            if len(missing) == len(ALLOWANCE_TYPES):
+                notes.append(f"target '{name}': can take daily allowances (traktamente, new in "
+                             f"0.3.0); add an allowance_map to replicate them "
+                             f"(docs/configuration.md#allowance_map)")
+            elif missing:
+                notes.append(f"target '{name}': no allowance_map entry for "
+                             f"{' or '.join(missing)} allowances; those are listed but not written")
+    return notes
+
+
+# --------------------------------------------------------------------------------------
 # converting the old format
 # --------------------------------------------------------------------------------------
 def _rename(d: dict, names: dict) -> dict:

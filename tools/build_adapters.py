@@ -25,7 +25,8 @@ other agents and IDEs). If you were asked to "sync the week", follow the playboo
 If you were asked to work on this repository, follow `CONTRIBUTING.md` (adding a target:
 `docs/adding-a-target.md`), run the tests with
 `python3 -m unittest discover -s tests -p "test_*.py"`, regenerate the instruction files
-with `python3 tools/build_adapters.py` after editing `docs/agent-playbook.md`, and never
+with `python3 tools/build_adapters.py` after editing `docs/agent-playbook.md` (bump
+`PLAYBOOK_VERSION` in `time_assistant/week.py` if the agent's output changes), and never
 commit `config.json`, `.tk_user` or `week-*.json` files (they are git-ignored on purpose).
 
 """
