@@ -32,13 +32,14 @@ numeric ids.
 | `username` | if the type needs it | Login name; not a secret |
 | `settings` | per type | Account and project ids in the target, e.g. TimeKeeper's `user_id` and `project_id` |
 | `time_map` | yes | How source activities map to the target (below) |
-| `expense_map` | if the type takes expenses | How source expense types map (below) |
+| `expense_map` | no | How source expense types map (below). Leave it out (or empty) and this target's expenses are listed in the dry run but not written |
+| `allowance_map` | no | How daily allowances (traktamente) map (below). Leave it out and allowances are listed but not written |
 | `accepted_statuses` | no | Stricter approval for this target only, e.g. `["Certified"]` |
 | `delete_stale` | no | `true` deletes rows whose source entry is gone. Default `false` (kept, with a WARN) |
 | `enabled` | no | `false` skips the target unless named with `--target`. Default `true` |
 
-The fields inside `settings`, `time_map` and `expense_map` depend on the type; each
-target's page lists them: [TimeKeeper](targets/timekeeper.md).
+The fields inside `settings`, `time_map`, `expense_map` and `allowance_map` depend on the
+type; each target's page lists them: [TimeKeeper](targets/timekeeper.md).
 
 ### time_map
 
@@ -67,6 +68,24 @@ target's codes, with `"default"` for every other type.
   "default": { "wagecode_id": 401 }
 }
 ```
+
+### allowance_map
+
+Daily allowances (traktamente) are expense entries with `"kind": "allowance"` in the week
+file. They are mapped by trip type, never by `expense_map`, and never fall back to its
+`default`:
+
+```json
+"allowance_map": {
+  "domestic": { "wagecode_id": 501 },
+  "foreign":  { "wagecode_id": 502 }
+}
+```
+
+`domestic` is a trip within the country (inrikes), `foreign` a trip abroad (utrikes). A
+type without an entry is listed in the dry run as not replicated, so map only what the
+target should receive. A target type that cannot store allowances refuses the key in
+`check-config`.
 
 ## Secrets
 

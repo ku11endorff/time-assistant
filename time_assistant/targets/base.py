@@ -47,6 +47,8 @@ class Target:
     display_name = ""             # how the target is named in output, e.g. "TimeKeeper"
     supports_expenses = False     # can it store expenses at all?
     supports_receipts = False     # can a receipt file be attached to an expense?
+    supports_allowances = False   # can it store daily allowances (traktamente)? They are
+                                  # expenses mapped by allowance_map instead of expense_map
     split_by_month = False        # True if the system locks or reports per calendar month
     needs_username = False        # True if config.json must give "username" for the target
     secrets: tuple = ()           # e.g. ("password",) or ("token",); never stored in config.json
@@ -90,7 +92,11 @@ class Target:
         raise NotImplementedError
 
     def build(self, kind: str, item: dict, mapping: dict) -> Wanted:
-        """The row for one source entry (an item of the week file) and its mapping entry."""
+        """The row for one source entry (an item of the week file) and its mapping entry.
+
+        Allowances arrive as kind "expense" with item["kind"] == "allowance" and their
+        allowance_map entry as mapping; week.is_allowance(item) tells them apart.
+        """
         raise NotImplementedError
 
     def same(self, kind: str, existing: Existing, wanted: Wanted) -> bool:

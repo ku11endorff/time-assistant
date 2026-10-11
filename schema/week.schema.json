@@ -28,18 +28,20 @@
     },
     "expenses": {
       "type": "array",
-      "description": "Receipt-type expense entries of the period (use [] if none).",
+      "description": "Expense entries of the period: receipts and daily allowances (use [] if none).",
       "items": {
         "type": "object",
         "required": ["id", "date", "amount_ore", "project_id"],
         "properties": {
           "id": { "type": ["integer", "string"], "pattern": "^[A-Za-z0-9_-]+$", "description": "e.g. <expense nr>-<entry id>. Becomes the [ta:e:<id>] tag." },
+          "kind": { "enum": ["receipt", "allowance"], "default": "receipt", "description": "receipt: an expense paid and reimbursed. allowance: a daily allowance (traktamente) for a business trip." },
+          "allowance_type": { "enum": ["domestic", "foreign"], "description": "Required when kind is allowance: domestic (inrikes) or foreign (utrikes). Picks the target's allowance_map entry." },
           "date": { "type": "string", "format": "date" },
           "description": { "type": "string" },
-          "amount_ore": { "type": "integer", "minimum": 0, "description": "Total INCLUDING VAT in minor units (1/100 of the currency)." },
+          "amount_ore": { "type": "integer", "minimum": 0, "description": "Total INCLUDING VAT in minor units (1/100 of the currency). For an allowance: the amount the source calculated." },
           "expense_type": { "type": "string", "description": "Source expense type name, mapped per target by expense_map in config.json." },
           "project_id": { "type": ["integer", "null"], "description": "Project the expense is re-invoiced to; null if none." },
-          "has_receipt": { "type": "boolean" },
+          "has_receipt": { "type": "boolean", "description": "Always false for an allowance." },
           "receipt_file": { "type": ["string", "null"], "description": "Absolute path of the matching receipt file on the user's machine, user-confirmed." }
         }
       }

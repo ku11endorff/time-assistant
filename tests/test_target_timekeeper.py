@@ -7,7 +7,7 @@ import urllib.error
 from unittest import mock
 
 import _paths  # noqa: F401  (puts the repo root on sys.path)
-from fake_target import WEEK, expense, ops
+from fake_target import WEEK, allowance, expense, ops
 from target_contract import TargetContract
 from time_assistant import config as conf
 from time_assistant import engine
@@ -118,6 +118,20 @@ class PayloadTests(unittest.TestCase):
         r = api.exp[0]
         self.assertEqual((r["price"], r["quantity"], r["wagecodeID"], r["projectID"], r["comment"]),
                          (312.5, 1, 44, 5001, "Taxi [ta:e:5-1]"))
+
+    def test_allowances_become_rows_with_the_traktamente_wage_code(self):
+        api = FakeTimeKeeperAPI()
+        w = copy.deepcopy(WEEK)
+        w["expenses"] = [allowance("6-1", type_="domestic", amount=58000),
+                         allowance("6-2", date="2026-10-08", type_="foreign", amount=104500)]
+        config = tk_config(allowance_map={"domestic": {"wagecode_id": 61}, "foreign": {"wagecode_id": 62}})
+        sync(api, w, config)
+        rows = {r["comment"]: r for r in api.exp}
+        dom = rows["Client workshop, Gothenburg [ta:e:6-1]"]
+        foreign = rows["Client workshop, Gothenburg [ta:e:6-2]"]
+        self.assertEqual((dom["wagecodeID"], dom["quantity"], dom["price"], dom["projectID"]), (61, 1, 580.0, 5001))
+        self.assertEqual((foreign["wagecodeID"], foreign["price"]), (62, 1045.0))
+        self.assertEqual(ops(sync(api, w, config)), {"skip": 7})
 
     def test_rows_in_other_projects_are_not_this_targets(self):
         api = FakeTimeKeeperAPI()

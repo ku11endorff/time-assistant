@@ -126,6 +126,10 @@ Notes:
   instead and read it back with `markers.find`.
 - `same()` must compare everything `build()` sets, and compare comments with
   `markers.normalise()`.
+- Daily allowances arrive in `build("expense", item, mapping)` with `item["kind"] ==
+  "allowance"` and their `allowance_map` entry as `mapping`. Set
+  `supports_allowances = True` only if the system can store them; the contract suite then
+  tests them too.
 - Raise `SystemExit("...")` with a readable message for API errors; the engine reports it
   per target and month and keeps going with the rest.
 - `check_settings()` can add offline checks (types, URL format) beyond the declared fields.
@@ -177,8 +181,8 @@ class ExampleContract(TargetContract, unittest.TestCase):
 ```
 
 The contract checks creating, safe re-runs, updates, removed entries, rows typed by
-hand, date ranges, expenses and receipts (skipped if not supported), and that two targets
-in one account stay apart. Add your own tests for payload shape, unit conversions, error
+hand, date ranges, expenses, receipts and allowances (skipped if not supported), and that
+two targets in one account stay apart. Add your own tests for payload shape, unit conversions, error
 handling and pagination. Run everything:
 
 ```bash

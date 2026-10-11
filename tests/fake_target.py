@@ -31,6 +31,7 @@ class MemoryTarget(Target):
     display_name = "Memory"
     supports_expenses = True
     supports_receipts = True
+    supports_allowances = True
     split_by_month = True
     required_settings = ("project",)
     time_map_fields = ("code",)
@@ -94,7 +95,16 @@ class BasicMemoryTarget(MemoryTarget):
     display_name = "Basic"
     supports_expenses = False
     supports_receipts = False
+    supports_allowances = False
     split_by_month = False
+
+
+@registry.register
+class ReceiptsOnlyMemoryTarget(MemoryTarget):
+    """A target that takes expenses with receipts but no allowances."""
+    type = "memory-receipts"
+    display_name = "ReceiptsOnly"
+    supports_allowances = False
 
 
 def target_cfg(name="client", project="P1", source_projects=(1000001,), type_="memory", **extra):
@@ -121,6 +131,14 @@ def week(**changes):
 def expense(id_="5-1", date="2026-10-07", project=1000001, has_receipt=False, path=None, **extra):
     x = {"id": id_, "date": date, "description": "Taxi to client", "amount_ore": 31250,
          "expense_type": "Taxi", "project_id": project, "has_receipt": has_receipt, "receipt_file": path}
+    x.update(extra)
+    return x
+
+
+def allowance(id_="6-1", date="2026-10-06", type_="domestic", amount=58000, project=1000001, **extra):
+    x = {"id": id_, "kind": "allowance", "allowance_type": type_, "date": date,
+         "description": "Client workshop, Gothenburg", "amount_ore": amount,
+         "project_id": project, "has_receipt": False}
     x.update(extra)
     return x
 

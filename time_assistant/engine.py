@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 
 from . import config as conf
 from . import targets as registry
+from . import week as weekfile
 
 OPS = ("create", "update", "delete", "receipt", "skip", "warn")
 VERB = {"create": "CREATE", "update": "UPDATE", "delete": "DELETE",
@@ -157,8 +158,34 @@ def time_mapping(tcfg, item):
 
 
 def expense_mapping(tcfg, item):
+    """The mapping for an expense: allowance_map by allowance type for allowances (never
+    the receipt default), else expense_map by expense type, else its "default"."""
+    if weekfile.is_allowance(item):
+        return (tcfg.get("allowance_map") or {}).get(item.get("allowance_type"))
     emap = tcfg.get("expense_map") or {}
     return emap.get(item.get("expense_type")) or emap.get("default")
+
+
+def takes_expenses(tcfg) -> bool:
+    """Expenses are opt-in per target: without an expense_map they are listed, not written."""
+    return any(not k.startswith("_") for k in (tcfg.get("expense_map") or {}))
+
+
+def expenses_not_taken(target, tcfg, expenses) -> list[tuple[dict, str]]:
+    """Expense entries this target leaves out, with the reason. Both kinds are opt-in:
+    receipts need an expense_map, allowances a target that supports them and an
+    allowance_map entry for their type."""
+    out = []
+    for x in expenses:
+        if weekfile.is_allowance(x):
+            if not target.supports_allowances:
+                out.append((x, f"{target.display_name} does not take allowances"))
+            elif expense_mapping(tcfg, x) is None:
+                out.append((x, f"no allowance_map entry for {x.get('allowance_type')} allowances "
+                               f"in target '{tcfg['name']}'"))
+        elif not takes_expenses(tcfg):
+            out.append((x, f"target '{tcfg['name']}' has no expense_map"))
+    return out
 
 
 def _icloud_hint(path: str) -> str:
@@ -213,7 +240,8 @@ def diff(plan: Plan, target, kind, wanted: dict, existing: list, delete_stale: b
 
     for key, (item, w) in wanted.items():
         have = by_key.get(key)
-        label = f"{item['date']} {kind} #{key}"
+        noun = "allowance" if weekfile.is_allowance(item) else kind
+        label = f"{item['date']} {noun} #{key}"
         if have is None:
             plan.add("create", kind, key, label, wanted=w)
             for row in manual:   # possible double entry typed by hand
@@ -277,6 +305,13 @@ def plan_target(cfg, tcfg, target, week, allow_missing_receipts=False) -> list[P
         for x in routed["expenses"]:
             gate.add("warn", "expense", x["id"], f"{x['date']} expense #{x['id']} not replicated: "
                      f"{target.display_name} does not take expenses")
+    else:
+        left_out = expenses_not_taken(target, tcfg, routed["expenses"])
+        for x, why in left_out:
+            noun = "allowance" if weekfile.is_allowance(x) else "expense"
+            gate.add("warn", "expense", x["id"], f"{x['date']} {noun} #{x['id']} not replicated: {why}")
+        skip = {id(x) for x, _ in left_out}
+        routed["expenses"] = [x for x in routed["expenses"] if id(x) not in skip]
     if gate.errors:
         return [gate]
     segs = split_by_month(routed) if target.split_by_month else [dict(routed, month=None)]

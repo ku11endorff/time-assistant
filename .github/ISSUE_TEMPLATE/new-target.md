@@ -15,6 +15,7 @@ Link to the API documentation. How does it authenticate (password, token, OAuth)
 - [ ] Time
 - [ ] Expenses
 - [ ] Receipt files
+- [ ] Daily allowances (traktamente)
 
 **Does the system lock or report per month?**
 

@@ -21,6 +21,7 @@ dependency-free Python script does the writing, only after you have seen a dry r
   typed by hand in a target are never touched.
 - **Your passwords never meet the AI.** They stay in your OS keychain, one per target.
 - **Receipts** are attached to expenses, matched to files you confirm.
+- **Daily allowances** (traktamente), domestic and foreign, go to the wage codes you choose.
 
 > Status: beta. The Kleer reader and TimeKeeper dry-run are used for real; writing of
 > expenses and receipt upload follows the API documentation but is covered only by
@@ -29,9 +30,9 @@ dependency-free Python script does the writing, only after you have seen a dry r
 
 ## Supported targets
 
-| Target | `type` | Time | Expenses | Receipts | Status | Setup |
-|---|---|:-:|:-:|:-:|---|---|
-| TimeKeeper | `timekeeper` | ✓ | ✓ | ✓ | beta | [docs/targets/timekeeper.md](docs/targets/timekeeper.md) |
+| Target | `type` | Time | Expenses | Receipts | Allowances | Status | Setup |
+|---|---|:-:|:-:|:-:|:-:|---|---|
+| TimeKeeper | `timekeeper` | ✓ | ✓ | ✓ | ✓ | beta | [docs/targets/timekeeper.md](docs/targets/timekeeper.md) |
 
 Need another system? Open a *New target* issue, or build it:
 [docs/adding-a-target.md](docs/adding-a-target.md). `python3 sync.py targets` lists what
@@ -145,7 +146,8 @@ Every field: [docs/configuration.md](docs/configuration.md).
 ## Rules the tool enforces
 
 **Routing.** A target only receives entries from its `source_project_ids`. Everything that
-no target takes is listed at the end of each run.
+no target takes is listed at the end of each run. Expenses and allowances are opt-in per
+target: without an `expense_map` / `allowance_map` they are listed, not written.
 
 **Approval gate.** Every time entry in the week, on any project, must have an accepted
 status (default `Approved`, `Certified`; configurable in `approval.accepted_statuses`).
@@ -206,7 +208,8 @@ it still works for one release and then goes away.
 
 ## Known limits
 
-- Mileage and allowance expense entries, and absences, are not synced.
+- Mileage entries and absences are not synced.
+- Allowances are written as one row with the source's total, not as days × daily rate.
 - The source's invoicing state is not forwarded.
 - Approval is checked on time entries only, not on expenses.
 - The reference source is Kleer; other source systems need only a different export step

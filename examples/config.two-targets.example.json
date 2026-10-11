@@ -1,5 +1,5 @@
 {
-  "_comment": "Example: one consultant, one engagement, reported in two other systems besides the employer's. The client wants the hours in its TimeKeeper; the staffing partner (you are their subcontractor) also wants them in its own TimeKeeper account and only takes certified time. Every id is a made-up placeholder.",
+  "_comment": "Example: one consultant, one engagement, reported in two other systems besides the employer's. The client wants the hours, expenses and traktamente in its TimeKeeper; the staffing partner (you are their subcontractor) also wants them in its own TimeKeeper account and only takes certified time. Every id is a made-up placeholder.",
 
   "version": 2,
   "source": { "name": "Kleer" },
@@ -13,7 +13,8 @@
       "source_project_ids": [1000001],
       "settings": { "user_id": 100, "project_id": 5001 },
       "time_map": [ { "source_activity_id": 1001, "activity_id": 201, "timecode_id": 301 } ],
-      "expense_map": { "default": { "wagecode_id": 401 } }
+      "expense_map": { "default": { "wagecode_id": 401 } },
+      "allowance_map": { "domestic": { "wagecode_id": 501 }, "foreign": { "wagecode_id": 502 } }
     },
     {
       "name": "partner",

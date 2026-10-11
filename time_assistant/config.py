@@ -9,6 +9,7 @@ import json
 import re
 
 from . import targets as registry
+from .week import ALLOWANCE_TYPES
 
 VERSION = 2
 DEFAULT_ACCEPTED_STATUSES = ("Approved", "Certified")   # Kleer: approved / certified
@@ -209,6 +210,25 @@ def check_target(t: dict, cls) -> list[str]:
             for k in cls.expense_map_fields:
                 if _missing(m.get(k)):
                     p.append(f"expense_map[{typ!r}]: '{k}' is required")
+
+    am = t.get("allowance_map")
+    if am is not None:
+        if not isinstance(am, dict):
+            p.append("'allowance_map' must be an object: \"domestic\" / \"foreign\" -> mapping")
+        elif not cls.supports_allowances:
+            p.append(f"'allowance_map' is set, but {cls.display_name} does not take allowances")
+        else:
+            for typ, m in am.items():
+                if typ.startswith("_"):
+                    continue
+                if typ not in ALLOWANCE_TYPES:
+                    p.append(f"allowance_map: unknown type {typ!r}; use \"domestic\" or \"foreign\"")
+                elif not isinstance(m, dict):
+                    p.append(f"allowance_map[{typ!r}] must be an object")
+                else:
+                    for k in cls.expense_map_fields:
+                        if _missing(m.get(k)):
+                            p.append(f"allowance_map[{typ!r}]: '{k}' is required")
     return p + list(cls.check_settings(t))
 
 

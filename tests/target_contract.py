@@ -12,13 +12,13 @@ Use it in tests/test_target_<type>.py together with a fake of your system's API:
 
 The tests only use the Target interface plus these hooks, so they check behaviour the
 engine relies on: creating, safe re-runs, updates, removed entries, rows typed by hand,
-date ranges, expenses, receipts, and targets that share an account.
+date ranges, expenses, receipts, allowances, and targets that share an account.
 """
 import copy
 import os
 import tempfile
 
-from fake_target import WEEK, expense, ops, w40
+from fake_target import WEEK, allowance, expense, ops, w40
 from time_assistant import config as conf
 from time_assistant import engine
 
@@ -158,6 +158,31 @@ class TargetContract:
         self.assertEqual([n.lower() for n in self.target.attached_files(row)], ["taxi-2026-10-07.pdf"])
         self.assertEqual(ops(self.sync(week)), {"skip": 7})      # 5 time + expense + receipt
         self.assertEqual(len(self.target.attached_files(row)), 1)
+
+    def with_allowance_map(self):
+        """The target's config with both allowance types mapped like its default expense."""
+        default = self.config["expense_map"]["default"]
+        return dict(self.config, allowance_map={"domestic": dict(default), "foreign": dict(default)})
+
+    def test_allowances_create_and_rerun(self):
+        self.needs("supports_allowances")
+        config = self.with_allowance_map()
+        target = self.make_target(config, self.backend)
+        week = copy.deepcopy(WEEK)
+        week["expenses"] = [expense(), allowance("6-1", type_="domestic"),
+                            allowance("6-2", date="2026-10-08", type_="foreign")]
+        self.assertEqual(ops(self.sync(week, target=target, config=config)), {"create": 8})
+        self.assertEqual(self.keys("expense", target=target), {"5-1", "6-1", "6-2"})
+        self.assertEqual(ops(self.sync(week, target=target, config=config)), {"skip": 8})
+        week["expenses"][1]["amount_ore"] = 43500
+        self.assertEqual(ops(self.sync(week, target=target, config=config)), {"update": 1, "skip": 7})
+
+    def test_allowances_are_opt_in(self):
+        self.needs("supports_allowances")
+        week = copy.deepcopy(WEEK)
+        week["expenses"] = [allowance()]
+        self.assertEqual(ops(self.sync(week)), {"create": 5, "warn": 1})   # no allowance_map
+        self.assertEqual(self.keys("expense"), set())
 
     def test_targets_sharing_an_account_do_not_see_each_others_rows(self):
         other = self.other_scope_config()

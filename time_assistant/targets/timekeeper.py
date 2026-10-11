@@ -157,6 +157,7 @@ class TimeKeeperTarget(Target):
     display_name = "TimeKeeper"
     supports_expenses = True
     supports_receipts = True
+    supports_allowances = True    # as "Övrigt" rows with an inrikes/utrikes traktamente wage code
     split_by_month = True
     needs_username = True
     secrets = ("password",)
@@ -282,6 +283,13 @@ class TimeKeeperTarget(Target):
         print("\n== Time codes ==  [time_map: timecode_id]")
         for t in self.api.paged("/api/v1/TimeCode", dict(params, IsActive="true")):
             print(f"  {g(t, 'id')}\t{g(t, 'name', default='')}\t(activity {g(t, 'activityID', default='-')})")
-        print("\nExpense wage codes (expense_map: wagecode_id) have no list endpoint; take wagecodeID "
-              "from an existing expense row (GET /api/v1/ExpenseRegistration) or ask your "
-              "TimeKeeper administrator.")
+        print("\n== Wage codes ==  [expense_map / allowance_map: wagecode_id]")
+        try:
+            for w in self.api.paged("/api/v1/WageCode", dict(params, IsActive="true")):
+                details = ", ".join(str(v) for v in (g(w, "unit"), g(w, "defaultPricePerUnit"))
+                                    if v not in (None, ""))
+                print(f"  {g(w, 'id')}\t{g(w, 'code', default='')}\t{g(w, 'name', default='')}"
+                      + (f"\t({details})" if details else ""))
+        except SystemExit as e:
+            print(f"  (could not list wage codes: {e})\n  Take wageCodeID from an existing expense "
+                  f"row, or ask your TimeKeeper administrator.")

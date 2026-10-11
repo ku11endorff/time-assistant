@@ -31,6 +31,17 @@ class CheckTests(unittest.TestCase):
                        "mapped twice", "settings.project is required", "unknown 'type' 'nope'"):
             self.assertIn(needle, problems)
 
+    def test_allowance_map(self):
+        good = cfg(target_cfg(allowance_map={"domestic": {"code": "D"}, "foreign": {"code": "F"}}))
+        self.assertEqual(conf.check(good), [])
+        bad = cfg(target_cfg(allowance_map={"abroad": {"code": "A"}, "domestic": {}}),
+                  target_cfg(name="basic", project="P2", type_="memory-receipts",
+                             allowance_map={"domestic": {"code": "D"}}))
+        problems = " | ".join(conf.check(bad))
+        for needle in ("unknown type 'abroad'", "allowance_map['domestic']: 'code' is required",
+                       "ReceiptsOnly does not take allowances"):
+            self.assertIn(needle, problems)
+
     def test_names_must_be_unique_and_targets_present(self):
         self.assertTrue(any("used twice" in p for p in conf.check(cfg(target_cfg(), target_cfg(project="P2")))))
         self.assertTrue(conf.check({"version": 2, "targets": []}))
