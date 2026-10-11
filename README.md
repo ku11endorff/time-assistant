@@ -156,7 +156,8 @@ replicated, only into `scope.tk_project_id` (the *internal* TimeKeeper id, not t
 number; `discover` prints both). Everything else is ignored and listed at the end of each run.
 
 **Approval gate.** Every time entry in the week must have an accepted status (default
-`Approved`, `Certified`; configurable in `approval.accepted_statuses`). Otherwise nothing is
+`Approved`, `Certified`; configurable in `approval.accepted_statuses`; the last sentence of
+the error comes from `approval.rerun_hint`, so you can name your own skill or command). Otherwise nothing is
 planned or written:
 
 ```

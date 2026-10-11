@@ -6,7 +6,9 @@
 
   "approval": {
     "required": true,
-    "accepted_statuses": ["Approved", "Certified"]
+    "accepted_statuses": ["Approved", "Certified"],
+    "rerun_hint": "run the export again",
+    "_rerun_hint_note": "Optional. Ends the 'week not approved' error: 'Approve the week in Kleer, then <rerun_hint>.' Put your own way of re-running here, e.g. \"ask your agent to run the time-assistant skill again\"."
   },
 
   "scope": {
