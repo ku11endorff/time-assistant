@@ -24,6 +24,18 @@ class ApprovalTests(unittest.TestCase):
         self.assertIn("2026-10-07", p.errors[0])
         self.assertEqual(p.actions, [])
 
+    def test_default_rerun_hint_is_generic(self):
+        w = self.week(); w["time_events"][0]["status"] = "Open"
+        p = sync.build_plan(copy.deepcopy(CFG), w, FakeTK())
+        self.assertTrue(p.errors[0].endswith("then run the export again."))
+
+    def test_custom_rerun_hint(self):
+        cfg = copy.deepcopy(CFG)
+        cfg["approval"] = {"rerun_hint": "ask Claude to run the time-assistant skill again."}
+        w = self.week(); w["time_events"][0]["status"] = "Open"
+        p = sync.build_plan(cfg, w, FakeTK())
+        self.assertTrue(p.errors[0].endswith("then ask Claude to run the time-assistant skill again."))
+
     def test_missing_status_fails_closed(self):
         w = self.week(); del w["time_events"][0]["status"]
         p = sync.build_plan(copy.deepcopy(CFG), w, FakeTK())
