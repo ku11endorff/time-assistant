@@ -222,6 +222,9 @@ class Plan:
 
 
 DEFAULT_APPROVED_STATUSES = ("Approved", "Certified")   # Kleer: approved / certified (certified implies approved)
+# What to do after approving; override per person with config.json approval.rerun_hint
+# (e.g. the name of the skill or command that runs your export).
+DEFAULT_RERUN_HINT = "run the export again"
 
 
 def check_approval(week, plan: "Plan", cfg=None):
@@ -239,11 +242,12 @@ def check_approval(week, plan: "Plan", cfg=None):
     if not bad:
         return
     days = ", ".join(sorted({e["date"] for e in bad}))
+    hint = str(ap.get("rerun_hint") or "").strip().rstrip(".") or DEFAULT_RERUN_HINT
     plan.errors.append(
         f"WEEK NOT APPROVED IN KLEER: {len(bad)} time entr{'y' if len(bad) == 1 else 'ies'} "
         f"({days}) not approved yet. The week has not yet been approved in Kleer and "
         f"therefore cannot be replicated to TimeKeeper. Approve the week in Kleer, "
-        f"then run /sync-tic-time again.")
+        f"then {hint}.")
     for e in bad:
         plan.errors.append(f"  - {e['date']} kleer:{e['id']} {e.get('hours')} h, "
                            f"status {e.get('status') or 'missing'}")
