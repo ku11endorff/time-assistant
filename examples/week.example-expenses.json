@@ -1,0 +1,22 @@
+{
+  "playbook_version": 5,
+  "week": "2026-W41",
+  "from": "2026-10-05",
+  "to": "2026-10-11",
+  "time_events": [
+    {"id": 7000001, "date": "2026-10-05", "hours": 8.0, "activity_id": 1001, "project_id": 1000001, "status": "Approved", "comment": "Example: workshop preparation"},
+    {"id": 7000002, "date": "2026-10-06", "hours": 8.0, "activity_id": 1001, "project_id": 1000001, "status": "Approved", "comment": "Example: workshop in Gothenburg"}
+  ],
+  "expenses": [
+    {"id": "9001-1", "date": "2026-10-06", "description": "Taxi to client", "amount_ore": 31250, "vat_ore": 1768,
+     "expense_type": "Taxi", "project_id": 2000001, "has_receipt": true, "receipt_file": "receipts/9001-1.jpg"},
+    {"id": "9002-1", "date": "2026-10-06", "description": "Hotel abroad (292.00 EUR)", "amount_ore": 325025, "vat_ore": 0,
+     "expense_type": "Hotel", "project_id": 2000001, "has_receipt": false},
+    {"id": "9003-20261005", "kind": "allowance", "allowance_type": "domestic", "date": "2026-10-05",
+     "description": "Client workshop, Gothenburg (half day)", "amount_ore": 14500, "quantity": 0.5,
+     "project_id": 2000001, "has_receipt": false},
+    {"id": "9003-20261006", "kind": "allowance", "allowance_type": "domestic", "date": "2026-10-06",
+     "description": "Client workshop, Gothenburg", "amount_ore": 29000, "quantity": 1,
+     "project_id": 2000001, "has_receipt": false}
+  ]
+}

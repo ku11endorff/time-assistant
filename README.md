@@ -19,14 +19,31 @@ dependency-free Python script does the writing, only after you have seen a dry r
 - **Approved weeks only.** An unapproved week is refused with a clear error.
 - **Safe to re-run.** Rows carry a tag, so re-runs update instead of duplicating. Rows you
   typed by hand in a target are never touched.
-- **Your passwords never meet the AI.** They stay in your OS keychain, one per target.
-- **Receipts** are attached to expenses, matched to files you confirm.
-- **Daily allowances** (traktamente), domestic and foreign, go to the wage codes you choose.
+- **Your passwords never meet the AI.** They stay in your OS keychain, one per target, or,
+  in a cloud session, in the cloud environment's network secret.
+- **Receipts** are attached to expenses, matched to files you confirm or fetched from Kleer
+  by their own file id. Receipt category, "paid by" and VAT are carried over.
+- **Daily allowances** (traktamente), domestic and foreign, full or half day, go to the wage
+  codes you choose.
+- **From your phone.** Run the whole routine in a Claude Code cloud session
+  ([docs/cloud-sessions.md](docs/cloud-sessions.md)).
+- **Guided.** A setup skill walks you through everything one step at a time
+  ([docs/getting-started.md](docs/getting-started.md)).
 
 > Status: beta. The Kleer reader and TimeKeeper dry-run are used for real; writing of
 > expenses and receipt upload follows the API documentation but is covered only by
 > offline tests against a fake TimeKeeper. Always read the dry run first, and please open
 > an issue for anything unexpected.
+
+## Start here
+
+| I want to... | Read |
+|---|---|
+| Understand how Kleer and TimeKeeper are linked and what a weekly run does | [docs/how-it-works.md](docs/how-it-works.md) |
+| Set it up for my own projects, step by step (or be guided interactively) | [docs/getting-started.md](docs/getting-started.md) |
+| Run it from Claude: a project, the skills, and the weekly routine after I approve in Kleer | [docs/claude-project-setup.md](docs/claude-project-setup.md) |
+| Run it from my phone | [docs/cloud-sessions.md](docs/cloud-sessions.md) |
+| Hand it to a colleague | Send them this repository; everything personal lives in their own git-ignored `config.json` |
 
 ## Supported targets
 
@@ -85,6 +102,10 @@ More detail, including the interface between the engine and the targets:
 [docs/architecture.md](docs/architecture.md).
 
 ## Quick start
+
+The condensed version. [docs/getting-started.md](docs/getting-started.md) has the full
+step-by-step guide, including where to find every id, and the setup skill can walk you
+through it interactively.
 
 Requirements: Python 3.9+ (standard library only), an account with API access in each
 target, and an AI agent that can read your source system.
@@ -203,6 +224,10 @@ has the rest.
 | `config.example.json` | Template for your private `config.json` |
 | `schema/week.schema.json` | The week file contract between agent and script |
 | `examples/` | A valid example week and a two-target example config |
+| `docs/how-it-works.md` | How the Kleer ↔ TimeKeeper replication works, in plain words |
+| `docs/getting-started.md` | Full setup, step by step, with where to find every id |
+| `docs/claude-project-setup.md` | A Claude project, the skills, and the weekly routine |
+| `docs/cloud-sessions.md` | Running it from your phone in a Claude Code cloud session |
 | `docs/agent-playbook.md` | The agent instructions (single source of truth) |
 | `docs/architecture.md` | How the pieces fit and the target interface |
 | `docs/configuration.md` | Every field of `config.json` |
@@ -210,13 +235,17 @@ has the rest.
 | `docs/adding-a-target.md` | How to add a target |
 | `CHANGELOG.md`, `docs/updating.md` | What changed in each version, and how to update |
 | `docs/data-convention.md` | Source → week file, how rows are recognised, and the semantic table: every piece of data in every system |
-| `AGENTS.md`, `.github/copilot-instructions.md`, `integrations/` | Generated from the playbook by `tools/build_adapters.py` |
+| `AGENTS.md`, `.github/copilot-instructions.md`, `integrations/` | Generated from the playbook by `tools/build_adapters.py`; the exception is `integrations/claude/time-assistant-setup/`, the hand-written interactive setup guide |
+| `tools/` | `save_receipt.py` and `make_cloud_env.py` (cloud sessions), plus the build and release helpers |
 | `tests/` | Offline tests; `tests/target_contract.py` is the suite every target must pass |
 
 ## Known limits
 
 - Mileage entries and absences are not synced.
-- Allowances are written as one row with the source's total, not as days × daily rate.
+- Allowances are written per day, as the source reports them; the per-day split has not
+  been verified against real Kleer data yet, so read the allowance lines of the dry run.
+- Expenses in a foreign currency are written in the company's currency, with the original
+  amount in the description (TimeKeeper stores one amount).
 - The source's invoicing state is not forwarded.
 - Approval is checked on time entries only, not on expenses.
 - The reference source is Kleer; other source systems need only a different export step

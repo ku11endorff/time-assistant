@@ -7,6 +7,10 @@ Looked up per target and field, in this order:
   4. a hidden prompt, when running in a terminal
 
 So the secret is read on your own machine and never shown to an AI agent.
+
+Cloud sessions: with TIME_ASSISTANT_AUTH=proxy no secret is looked up at all. The login is
+added to requests by the cloud environment's network secret, outside the session, so
+neither the agent nor this script ever holds it (docs/cloud-sessions.md).
 """
 from __future__ import annotations
 
@@ -18,6 +22,11 @@ import subprocess
 import sys
 
 SERVICE = "time-assistant"
+
+
+def proxy_mode() -> bool:
+    """True in a cloud session whose network secret supplies the target login."""
+    return os.environ.get("TIME_ASSISTANT_AUTH", "").strip().lower() == "proxy"
 
 
 def service(target_name: str) -> str:
@@ -65,4 +74,6 @@ def lookup(target_name: str, field: str, interactive: bool | None = None) -> str
 
 
 def get_secrets(target_name: str, fields) -> dict:
+    if proxy_mode():
+        return {}
     return {f: lookup(target_name, f) for f in fields}

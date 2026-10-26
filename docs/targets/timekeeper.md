@@ -10,7 +10,7 @@
 | Receipts | ✓ uploaded to `/api/v1/File/ExpenseRegistrationFile` |
 | Allowances (traktamente) | ✓ `ExpenseRegistration` with the inrikes or utrikes traktamente wage code |
 | Month split | yes: each calendar month is written and verified separately |
-| Login | Basic Auth: `username` in config.json, `password` in the keychain |
+| Login | Basic Auth: `username` in config.json, `password` in the keychain. In a cloud session the environment's network secret adds it ([cloud sessions](../cloud-sessions.md)) |
 | Status | beta: reading and dry runs are used for real; expense writes and receipt upload are tested offline against a fake TimeKeeper |
 
 ## Setup
@@ -32,7 +32,8 @@
    | `settings.project_id` | the **first column** of the project list: the internal id, not the project number |
    | `time_map[].activity_id` | the activity |
    | `time_map[].timecode_id` | the time code that belongs to that activity |
-   | `expense_map.*.wagecode_id` | the wage code for that kind of expense |
+   | `expense_map.*.wagecode_id` | the wage code for that kind of expense (a receipt: the code named *Kvitto*) |
+   | `expense_map.*.receipt_category_id` | the receipt category ("Kategori") from the *Receipt categories* list; use an active one |
    | `allowance_map.domestic.wagecode_id` | the wage code for *inrikes traktamente* (under *Övrigt* in TimeKeeper) |
    | `allowance_map.foreign.wagecode_id` | the wage code for *utrikes traktamente* |
 
@@ -50,7 +51,7 @@
   "source_project_ids": [1000001],
   "settings": { "user_id": 100, "project_id": 5001 },
   "time_map": [ { "source_activity_id": 1001, "activity_id": 201, "timecode_id": 301 } ],
-  "expense_map": { "default": { "wagecode_id": 401 } },
+  "expense_map": { "default": { "wagecode_id": 401, "receipt_category_id": 301, "paid_by": "self" } },
   "allowance_map": { "domestic": { "wagecode_id": 501 }, "foreign": { "wagecode_id": 502 } }
 }
 ```
@@ -83,8 +84,19 @@ Side by side with the week file, Kleer and every other target: the
 | `date` | `date` | Copied |
 | `description` | `comment` | Copied, tag appended |
 | `amount_ore` | `price`, `quantity` | `price = amount_ore / 100`, `quantity = 1` |
+| `vat_ore` | `receiptVATAmount` | `vat_ore / 100`, only when the week file has it |
 | `expense_type` | `wagecodeID` | Via `expense_map` (type, else `default`) |
+| (`expense_map`) | `receiptCategoryID`, `receiptPaymentType` | `receipt_category_id` and `paid_by` (`self` = 0, `company` = 1), only when set |
 | `receipt_file` | attached file | Uploaded once; a file with the same name is not uploaded again |
+
+#### Receipt category and paid by
+
+In TimeKeeper's *Lägg till kvitto* form these are **Kategori** and **Betalt av**. Some
+accounts only accept the receipt wage code together with a category; without one the API
+answers `HTTP 400 ... Lönekoden Kvitto är inte längre tillgänglig`. Set
+`receipt_category_id` (from `discover`) and `paid_by` in `expense_map`. Categories can exist
+twice under the same name, one of them inactive: use the active one. `check-config` shows a
+`NOTE` while they are not set.
 
 ### Allowance (traktamente) → `ExpenseRegistration`
 
@@ -97,7 +109,7 @@ inrikes or utrikes traktamente.
 | `date` | `date` | Copied |
 | `description` | `comment` | Copied, tag appended |
 | `allowance_type` | `wagecodeID` | `allowance_map.domestic` or `allowance_map.foreign` |
-| `amount_ore` | `price`, `quantity` | One row with the source's total: `price = amount_ore / 100`, `quantity = 1` |
+| `amount_ore`, `quantity` | `price`, `quantity` | `quantity` is `1` (default) or `0.5` for a half day; `price = amount_ore / 100 / quantity`, so the row total is the source's amount for that day |
 
 ## Behaviour worth knowing
 
@@ -121,3 +133,6 @@ inrikes or utrikes traktamente.
 | `settings.project_id` seems right but rows go nowhere | You used the project *number*; `discover` shows the internal id in the first column |
 | `TimeKeeper POST ... -> HTTP 403` for one month | The period is closed in TimeKeeper; the other month is still written |
 | `file not found ... not downloaded to this Mac` | The receipt is an iCloud placeholder; download it in Finder first |
+| `HTTP 400 ... Lönekoden Kvitto är inte längre tillgänglig` | The expense row has no receipt category. Set `receipt_category_id` and `paid_by` in `expense_map` (see above) |
+| A receipt is attached again on every run | Update to 0.5.0 or later: attached files are recognised by TimeKeeper's `originalFileName` |
+| An expense is listed as not replicated although it is on your project | Its project id differs from the time entries' (expenses use a dimension-project id). Add that id to `source_project_ids` |

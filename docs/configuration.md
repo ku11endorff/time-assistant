@@ -65,9 +65,19 @@ target's codes, with `"default"` for every other type.
 ```json
 "expense_map": {
   "Taxi":    { "wagecode_id": 402 },
-  "default": { "wagecode_id": 401 }
+  "default": { "wagecode_id": 401, "receipt_category_id": 301, "paid_by": "self" }
 }
 ```
+
+Optional keys, for targets that record them (TimeKeeper does, see
+[its page](targets/timekeeper.md#receipt-category-and-paid-by)):
+
+| Key | Meaning |
+|---|---|
+| `receipt_category_id` | The target's receipt category ("Kategori"). Some accounts refuse the receipt wage code without one |
+| `paid_by` | `"self"` (paid by you, to be reimbursed) or `"company"` (paid by the company, e.g. a company card) |
+
+The week file's `vat_ore`, when present, is sent as the VAT amount; no config is needed.
 
 ### allowance_map
 
@@ -89,6 +99,8 @@ target should receive. A target type that cannot store allowances refuses the ke
 
 ## Secrets
 
+Cloud sessions use none of this: see [Cloud sessions](#cloud-sessions) below.
+
 Passwords and tokens never go into `config.json`. For target `client` and secret
 `password`, `sync.py` looks in this order:
 
@@ -103,6 +115,19 @@ Store it once:
 security add-generic-password -s time-assistant:client -a password -U -w      # macOS
 secret-tool store --label=time-assistant:client service time-assistant:client account password   # Linux
 ```
+
+## Cloud sessions
+
+In a cloud session (phone, web) there is no `config.json` file, no keychain and no password
+to look up. Two environment variables replace them
+([cloud-sessions.md](cloud-sessions.md) has the full setup):
+
+| Variable | Content |
+|---|---|
+| `TIME_ASSISTANT_AUTH` | `proxy`: the login is added to the target's requests by the cloud environment's network secret, outside the session. `username` is then not required in `config.json` |
+| `TIME_ASSISTANT_CONFIG_JSON` | The contents of `config.json` (ids only, no secrets), used when the file `config.json` does not exist. A file always wins |
+
+`python3 tools/make_cloud_env.py` writes both lines from your `config.json`.
 
 ## Converting the old format
 

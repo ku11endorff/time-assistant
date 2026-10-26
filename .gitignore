@@ -8,3 +8,7 @@ week-*.json
 __pycache__/
 *.pyc
 .DS_Store
+
+# Cloud sessions: generated environment lines, receipts fetched from the source
+cloud-environment-variables.txt
+receipts/

@@ -167,13 +167,21 @@ class CheckVersionTests(unittest.TestCase):
             self.tool.next_version("", "patch")
 
     def test_version_must_match_the_ticked_bump(self):
+        # Derived from the current version, so the test survives every release.
+        a, b, c = (int(x) for x in __version__.split("."))
+        if c:
+            base, bump, other = f"{a}.{b}.{c - 1}", "Patch", "Minor"
+        elif b:
+            base, bump, other = f"{a}.{b - 1}.0", "Minor", "Patch"
+        else:
+            base, bump, other = f"{a - 1}.0.0", "Major", "Patch"
         changelog = read("CHANGELOG.md")
-        self.assertEqual(self.tool.problems(self.tick("Patch"), "0.4.0", "0.4.1", changelog), [])
-        wrong = self.tool.problems(self.tick("Minor"), "0.4.0", "0.4.1", changelog)
-        self.assertIn("is version 0.5.0", wrong[0])
-        missing = self.tool.problems(self.tick("Patch"), "0.4.1", "0.4.2", changelog)
-        self.assertTrue(any("no '## [0.4.2]" in p for p in missing))
-
+        self.assertEqual(self.tool.problems(self.tick(bump), base, __version__, changelog), [])
+        wrong = self.tool.problems(self.tick(other), base, __version__, changelog)
+        self.assertIn(f"{other.lower()} change after {base} is version", wrong[0])
+        nxt = self.tool.next_version(__version__, "patch")
+        missing = self.tool.problems(self.tick("Patch"), __version__, nxt, changelog)
+        self.assertTrue(any(f"no '## [{nxt}]" in p for p in missing))
 
 if __name__ == "__main__":
     unittest.main()

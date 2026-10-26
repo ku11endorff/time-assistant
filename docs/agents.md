@@ -23,14 +23,20 @@ never edit more than one file.
 Check each agent's own documentation for where instructions, skills or connectors are
 configured; menus change often.
 
-### Claude Code: link the skill, don't copy it
+### Claude Code: link the skills, don't copy them
 
-Run this once from the time-assistant folder:
+There are two: `time-assistant` (the weekly export) and `time-assistant-setup` (the
+interactive setup guide, hand-written). Run this once from the time-assistant folder:
 
 ```bash
 mkdir -p ~/.claude/skills
-ln -sfn "$PWD/integrations/claude/time-assistant" ~/.claude/skills/time-assistant
+ln -sfn "$PWD/integrations/claude/time-assistant"       ~/.claude/skills/time-assistant
+ln -sfn "$PWD/integrations/claude/time-assistant-setup" ~/.claude/skills/time-assistant-setup
 ```
+
+The whole routine in Claude, with a project that holds your instructions and the Kleer
+connector: [claude-project-setup.md](claude-project-setup.md). From your phone:
+[cloud-sessions.md](cloud-sessions.md).
 
 A link always points at the files in your checkout, so every `git pull` updates the skill
 as well. If you copied the folder before, remove the copy first

@@ -13,7 +13,9 @@ from . import markers
 # exported with outdated instructions is noticed. Bump it whenever the playbook changes
 # what the agent writes, and update the number in the playbook (tests check they match).
 #   1 single TimeKeeper   2 targets   3 daily allowances   4 playbook_version in the file
-PLAYBOOK_VERSION = 4
+#   5 vat_ore, allowance quantity (half days), expense project ids, foreign currency, receipts
+#     fetched from the source in cloud sessions
+PLAYBOOK_VERSION = 5
 
 EXPENSE_KINDS = ("receipt", "allowance")
 ALLOWANCE_TYPES = ("domestic", "foreign")   # inrikes / utrikes traktamente
@@ -129,6 +131,10 @@ def validate_week(week) -> list[str]:
                         f"(amount incl. VAT in 1/100 currency units)")
         if not isinstance(x.get("has_receipt", False), bool):
             errs.append(f"{w}: 'has_receipt' must be true or false")
+        v = x.get("vat_ore")
+        if v is not None and (isinstance(v, bool) or not isinstance(v, int) or v < 0):
+            errs.append(f"{w}: 'vat_ore' must be a non-negative integer (the VAT part of "
+                        f"amount_ore, in 1/100 currency units)")
         kind = x.get("kind", "receipt")
         if kind not in EXPENSE_KINDS:
             errs.append(f"{w}: 'kind' must be \"receipt\" or \"allowance\"")
@@ -138,4 +144,11 @@ def validate_week(week) -> list[str]:
                             f"or \"foreign\" (utrikes)")
             if x.get("has_receipt"):
                 errs.append(f"{w}: an allowance has no receipt; set 'has_receipt' to false")
+        q = x.get("quantity")
+        if q is not None:
+            if kind != "allowance":
+                errs.append(f"{w}: 'quantity' is only for allowances (1 = full day, 0.5 = half day)")
+            elif isinstance(q, bool) or not isinstance(q, (int, float)) or not 0 < q <= 1:
+                errs.append(f"{w}: 'quantity' must be a number above 0 and at most 1 "
+                            f"(1 = full day, 0.5 = half day)")
     return errs
