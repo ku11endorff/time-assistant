@@ -69,6 +69,12 @@ class Target:
         return []
 
     @classmethod
+    def feature_notes(cls, config: dict) -> list[str]:
+        """Optional features of this target that its config does not use yet (shown as NOTE
+        by check-config, never an error)."""
+        return []
+
+    @classmethod
     def identity(cls, config: dict):
         """Where this target's rows live (account + project), or None.
 

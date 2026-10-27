@@ -34,11 +34,12 @@ what no target takes.
 | `<expense nr>-<entry id>` | `id` | e.g. `"5-1"` |
 | `date` | `date` | Receipt date |
 | `description` | `description` | Sent to targets |
-| total incl. VAT | `amount_ore` | Integer, minor units (1/100 of the currency) |
+| total incl. VAT | `amount_ore` | Integer, minor units (1/100 of the company's currency). A foreign-currency entry uses the converted amount, and the original amount and currency go in `description` |
+| VAT part | `vat_ore` | Optional integer, minor units. Sent to targets that record VAT |
 | expense type | `expense_type` | Mapped per target by `expense_map` (type, else `default`) |
-| project the entry is re-invoiced to | `project_id` | `null` if none |
+| project the entry is re-invoiced to | `project_id` | `null` if none. **In Kleer this is a different id than the client-project id of time entries** (a dimension project, `re_invoice_project.id`), and each expense may get a new one: list every id you have seen in the target's `source_project_ids`. Never relabelled |
 | receipt exists | `has_receipt` | `true` → a confirmed local file is needed if a target takes receipts |
-| confirmed file | `receipt_file` | Absolute path on the person's own machine |
+| confirmed file | `receipt_file` | Path on the machine that runs `sync.py`: a file the person confirmed, or one fetched from Kleer by its own file id in a cloud session (`tools/save_receipt.py`) |
 | entry kind | `kind` | `receipt` (default) or `allowance` |
 | mileage entries | n/a | Not supported; left out and named to the person |
 
@@ -52,7 +53,8 @@ Kleer allowance entries go into `expenses` too, with `"kind": "allowance"`:
 | type of trip: *Inrikes* / *Utrikes* | `allowance_type` | `domestic` / `foreign`; picks the target's `allowance_map` entry. Ask the person if unclear |
 | `date` | `date` | As the source gives it |
 | `description` (purpose) | `description` | Sent to targets |
-| calculated allowance | `amount_ore` | The amount the source calculated (tax-free part), minor units |
+| calculated allowance | `amount_ore` | The amount the source calculated (tax-free part) **for that day**, minor units |
+| full or half day | `quantity` | Optional: `1` (default) full day, `0.5` half day. Write one object per calendar day of the trip, id `<expense nr>-<yyyymmdd>` |
 | project it is re-invoiced to | `project_id` | Decides which targets get it |
 | | `has_receipt` | Always `false` |
 
@@ -113,16 +115,19 @@ row is missing a cell.
 | Date | `date` | `date` | `date` |
 | Description | `description` | `description` | `comment`, with the tag appended |
 | Amount incl. VAT | `amount_ore`, minor units | `amount_ore` | `price` = `amount_ore` / 100, `quantity` = 1 |
-| VAT part | — | `vat_ore` | *not sent* |
+| VAT part | `vat_ore` (optional) | `vat_ore` | `receiptVATAmount` = `vat_ore` / 100, when present |
 | Expense type | `expense_type` | expense type | `wagecodeID` via `expense_map` (type, else `default`) |
-| Re-invoiced to project | `project_id` | project the entry is re-invoiced to | `projectID` = `settings.project_id` |
-| Receipt | `has_receipt` + `receipt_file` (confirmed local path) | receipt file on the entry | file uploaded to `/api/v1/File/ExpenseRegistrationFile` |
+| Re-invoiced to project | `project_id` | project the entry is re-invoiced to (`re_invoice_project.id`: a dimension-project id, **not** the client-project id of time entries) | `projectID` = `settings.project_id` |
+| Receipt category ("Kategori") | — | expense type / category | `receiptCategoryID` = `expense_map.*.receipt_category_id`, when set |
+| Paid by ("Betalt av") | — | — (Kleer: paid privately or by company card) | `receiptPaymentType` via `expense_map.*.paid_by`: `self` = 0, `company` = 1, when set |
+| Receipt | `has_receipt` + `receipt_file` (confirmed local path, or fetched from Kleer by `receipt_file_id`) | receipt file on the entry (`getExpenseFileImage`) | file uploaded to `/api/v1/File/ExpenseRegistrationFile` |
 | **Daily allowance (traktamente)** | item of `expenses`, `kind` `allowance` | expense report entry, kind `allowance` | `ExpenseRegistration`, *Övrigt* |
 | Entry id, row identity | `id` = `<expense nr>-<entry id>` | expense `nr` + entry id | tag `[ta:e:<id>]` at the end of `comment` |
 | Trip type | `allowance_type`: `domestic` / `foreign` | *Inrikes* / *Utrikes* | `wagecodeID` via `allowance_map`: inrikes / utrikes traktamente |
 | Date | `date` | `date` | `date` |
 | Description | `description` | `description` | `comment`, with the tag appended |
-| Amount | `amount_ore`: the amount the source calculated | allowance calculated by Kleer | `price` = `amount_ore` / 100, `quantity` = 1 |
+| Amount | `amount_ore`: the amount the source calculated for that day | allowance calculated by Kleer, per day | `price` = `amount_ore` / 100 / `quantity` |
+| Full or half day | `quantity`: `1` or `0.5` (optional) | days and amounts as Kleer reports them | `quantity`, so the row total equals the source's amount |
 | Re-invoiced to project | `project_id` | project the entry is re-invoiced to | `projectID` = `settings.project_id` |
 | **Not replicated** | | | |
 | Mileage | — (left out, named to the person) | expense report entry, kind `mileage` | *not replicated* |
@@ -130,6 +135,6 @@ row is missing a cell.
 | **System behaviour** | | | |
 | Version of the agent instructions | `playbook_version`; `sync.py` warns when it differs from what it expects | — | — |
 | Reading and writing | — | read by the agent (MCP connector or API); never written | REST API, `api2.timekeeper.se` |
-| Login | — | the agent's own connection | Basic Auth: `username` + keychain `password` |
+| Login | — | the agent's own connection | Basic Auth: `username` + keychain `password`; in a cloud session the cloud environment's network secret adds it ([cloud-sessions.md](cloud-sessions.md)) |
 | Closed periods | — | — (only read) | per calendar month (`split_by_month`) |
 | Row typed by hand | — | — (only read) | no tag in `comment`; never changed |

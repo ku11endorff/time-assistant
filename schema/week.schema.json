@@ -39,11 +39,13 @@
           "allowance_type": { "enum": ["domestic", "foreign"], "description": "Required when kind is allowance: domestic (inrikes) or foreign (utrikes). Picks the target's allowance_map entry." },
           "date": { "type": "string", "format": "date" },
           "description": { "type": "string" },
-          "amount_ore": { "type": "integer", "minimum": 0, "description": "Total INCLUDING VAT in minor units (1/100 of the currency). For an allowance: the amount the source calculated." },
+          "amount_ore": { "type": "integer", "minimum": 0, "description": "Total INCLUDING VAT in minor units (1/100 of the company's currency; for a foreign-currency entry the converted amount). For an allowance: the amount the source calculated for that day." },
+          "vat_ore": { "type": "integer", "minimum": 0, "description": "The VAT part of amount_ore in minor units. Sent to targets that record VAT. Optional." },
+          "quantity": { "type": "number", "exclusiveMinimum": 0, "maximum": 1, "description": "Allowances only: 1 = full day, 0.5 = half day. One allowance object per calendar day of the trip, amount_ore being that day's amount. Optional, default 1." },
           "expense_type": { "type": "string", "description": "Source expense type name, mapped per target by expense_map in config.json." },
-          "project_id": { "type": ["integer", "null"], "description": "Project the expense is re-invoiced to; null if none." },
+          "project_id": { "type": ["integer", "null"], "description": "Project the expense is re-invoiced to; null if none. In Kleer this id differs from the client-project id of time entries: export what the source gives and list it in the target's source_project_ids." },
           "has_receipt": { "type": "boolean", "description": "Always false for an allowance." },
-          "receipt_file": { "type": ["string", "null"], "description": "Absolute path of the matching receipt file on the user's machine, user-confirmed." }
+          "receipt_file": { "type": ["string", "null"], "description": "Path of the matching receipt file on the machine that runs sync.py: confirmed by the user, or fetched from the source by the receipt's own file id (cloud sessions, tools/save_receipt.py)." }
         }
       }
     }

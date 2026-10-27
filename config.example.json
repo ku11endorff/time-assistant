@@ -43,7 +43,9 @@
       "expense_map": {
         "default": {
           "wagecode_id": 401,
-          "_note": "Wage codes are listed by `python3 sync.py discover`."
+          "receipt_category_id": 301,
+          "paid_by": "self",
+          "_note": "Wage codes and receipt categories are listed by `python3 sync.py discover`. receipt_category_id (Kategori) and paid_by (self = paid by you, company = company card) are optional, but some TimeKeeper accounts refuse the receipt wage code without them."
         }
       },
 

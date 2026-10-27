@@ -6,8 +6,10 @@ with "_" are notes for people and are ignored.
 from __future__ import annotations
 
 import json
+import os
 import re
 
+from . import credentials
 from . import targets as registry
 from .week import ALLOWANCE_TYPES
 
@@ -23,15 +25,28 @@ NAME_RE = re.compile(r"^[a-z0-9][a-z0-9_-]*$")
 # --------------------------------------------------------------------------------------
 # loading
 # --------------------------------------------------------------------------------------
+ENV_CONFIG = "TIME_ASSISTANT_CONFIG_JSON"
+
+
 def read(path: str) -> dict:
+    """config.json, or, in a cloud session where the file does not exist, the JSON in the
+    environment variable TIME_ASSISTANT_CONFIG_JSON (ids only, no secrets; docs/cloud-sessions.md)."""
+    origin = path
     try:
         with open(path, encoding="utf-8") as f:
-            cfg = json.load(f)
+            text = f.read()
     except FileNotFoundError:
-        raise SystemExit(f"{path} not found. Copy config.example.json to {path} and fill in "
-                         f"your own ids (docs/configuration.md).") from None
+        text = os.environ.get(ENV_CONFIG)
+        if not text:
+            raise SystemExit(f"{path} not found. Copy config.example.json to {path} and fill in "
+                             f"your own ids (docs/configuration.md). In a cloud session, set the "
+                             f"environment variable {ENV_CONFIG} instead "
+                             f"(docs/cloud-sessions.md).") from None
+        origin = f"environment variable {ENV_CONFIG}"
+    try:
+        cfg = json.loads(text)
     except json.JSONDecodeError as e:
-        raise SystemExit(f"{path} is not valid JSON ({e}). Look for curly quotes or a missing "
+        raise SystemExit(f"{origin} is not valid JSON ({e}). Look for curly quotes or a missing "
                          f"comma; config.example.json shows the expected shape.") from None
     if is_legacy(cfg):
         raise SystemExit(f"{path} uses the old single-TimeKeeper format. Convert it once with\n"
@@ -166,7 +181,7 @@ def check_target(t: dict, cls) -> list[str]:
             p.append(f"'{k}' must be true or false")
     if "accepted_statuses" in t and not _str_list(t["accepted_statuses"]):
         p.append("'accepted_statuses' must be a non-empty list of status names")
-    if cls.needs_username and (not isinstance(t.get("username"), str) or not t["username"].strip()):
+    if cls.needs_username and not credentials.proxy_mode() and (not isinstance(t.get("username"), str) or not t["username"].strip()):
         p.append(f"'username' is required (your {cls.display_name} login name; it is not a secret)")
     s = t.get("settings", {})
     if not isinstance(s, dict):
@@ -261,6 +276,7 @@ def feature_notes(cfg) -> list[str]:
             elif missing:
                 notes.append(f"target '{name}': no allowance_map entry for "
                              f"{' or '.join(missing)} allowances; those are listed but not written")
+        notes += cls.feature_notes(t)
     return notes
 
 

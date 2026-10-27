@@ -11,10 +11,14 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
-from .. import markers
+from .. import credentials, markers
+from ..week import is_allowance
 from .base import Existing, Target, Wanted
 
 DEFAULT_BASE = "https://api2.timekeeper.se"
+
+# TimeKeeper's "Betalt av" on a receipt: ReceiptPaymentType 0 = paid by yourself, 1 = by the company.
+PAID_BY = {"self": 0, "company": 1}
 
 
 def g(d: dict, *names, default=None):
@@ -50,14 +54,12 @@ def split_hours(hours: float) -> tuple[int, int]:
 class TimeKeeperAPI:
     """Minimal TimeKeeper REST client, standard library only."""
 
-    def __init__(self, user: str, password: str, base: str = DEFAULT_BASE):
+    def __init__(self, user: str, password: str, base: str = DEFAULT_BASE, proxy_auth: bool = False):
         self.base = base.rstrip("/")
-        token = base64.b64encode(f"{user}:{password}".encode()).decode()
-        self.headers = {
-            "Authorization": f"Basic {token}",
-            "Accept": "application/json",
-            "Content-Type": "application/json",
-        }
+        self.headers = {"Accept": "application/json", "Content-Type": "application/json"}
+        if not proxy_auth:   # in a cloud session the network secret adds Authorization itself
+            token = base64.b64encode(f"{user}:{password}".encode()).decode()
+            self.headers["Authorization"] = f"Basic {token}"
 
     def _call(self, method: str, path: str, params: dict | None = None, body=None,
               empty_on_404: bool = False):
@@ -172,7 +174,8 @@ class TimeKeeperTarget(Target):
         self.user_id = self.settings.get("user_id")
         self.project_id = self.settings.get("project_id")
         self.api = api or TimeKeeperAPI(config.get("username", ""), (secrets or {}).get("password", ""),
-                                        self.settings.get("base_url") or DEFAULT_BASE)
+                                        self.settings.get("base_url") or DEFAULT_BASE,
+                                        proxy_auth=credentials.proxy_mode())
 
     @classmethod
     def check_settings(cls, config):
@@ -183,7 +186,27 @@ class TimeKeeperTarget(Target):
                 problems.append(f"settings.{k} must be a number (run `discover` to find it)")
         if s.get("base_url") and not str(s["base_url"]).startswith("https://"):
             problems.append("settings.base_url must start with https://")
+        for typ, m in (config.get("expense_map") or {}).items():
+            if typ.startswith("_") or not isinstance(m, dict):
+                continue
+            rc = m.get("receipt_category_id")
+            if rc is not None and (isinstance(rc, bool) or not isinstance(rc, int)):
+                problems.append(f"expense_map[{typ!r}]: receipt_category_id must be a number "
+                                f"(run `discover`, section Receipt categories)")
+            if m.get("paid_by") is not None and m["paid_by"] not in PAID_BY:
+                problems.append(f"expense_map[{typ!r}]: paid_by must be \"self\" or \"company\"")
         return problems
+
+    @classmethod
+    def feature_notes(cls, config):
+        em = {k: v for k, v in (config.get("expense_map") or {}).items()
+              if not k.startswith("_") and isinstance(v, dict)}
+        if em and any(m.get("receipt_category_id") is None for m in em.values()):
+            return [f"target '{config.get('name')}': expense_map without receipt_category_id / paid_by. "
+                    f"Some TimeKeeper accounts refuse the receipt wage code unless the row has a "
+                    f"receipt category (\"Kategori\") and say who paid (\"Betalt av\"); see "
+                    f"docs/targets/timekeeper.md#receipt-category-and-paid-by"]
+        return []
 
     @classmethod
     def identity(cls, config):
@@ -221,15 +244,24 @@ class TimeKeeperTarget(Target):
                 "isInvoiced": False,
             }
         else:
+            # An allowance may be a half day (quantity 0.5): the row total stays the source's amount.
+            quantity = item.get("quantity") or 1 if is_allowance(item) else 1
             payload = {
                 "userID": self.user_id,
                 "date": item["date"],
                 "wagecodeID": mapping["wagecode_id"],
                 "projectID": self.project_id,
-                "quantity": 1,
-                "price": round(item["amount_ore"] / 100, 2),
+                "quantity": quantity,
+                "price": round(item["amount_ore"] / 100 / quantity, 2),
                 "comment": self.comment(kind, item, mapping),
             }
+            if not is_allowance(item):
+                if mapping.get("receipt_category_id") is not None:
+                    payload["receiptCategoryID"] = mapping["receipt_category_id"]
+                if mapping.get("paid_by") in PAID_BY:
+                    payload["receiptPaymentType"] = PAID_BY[mapping["paid_by"]]
+                if item.get("vat_ore") is not None:
+                    payload["receiptVATAmount"] = round(item["vat_ore"] / 100, 2)
         return Wanted(payload=payload, project=self.project_id)
 
     def same(self, kind, existing, wanted):
@@ -248,7 +280,12 @@ class TimeKeeperTarget(Target):
         return (common
                 and g(have, "wagecodeID") == want["wagecodeID"]
                 and abs(float(g(have, "price", default=0) or 0) - want["price"]) < 0.005
-                and float(g(have, "quantity", default=1) or 1) == want["quantity"])
+                and float(g(have, "quantity", default=1) or 1) == want["quantity"]
+                and all(g(have, k) == want[k] for k in ("receiptCategoryID", "receiptPaymentType")
+                        if k in want)
+                and ("receiptVATAmount" not in want
+                     or abs(float(g(have, "receiptVATAmount", default=0) or 0)
+                            - want["receiptVATAmount"]) < 0.005))
 
     # ---- writing ------------------------------------------------------------------------
     def create(self, kind, wanted):
@@ -262,7 +299,7 @@ class TimeKeeperTarget(Target):
         (self.api.delete_time if kind == "time" else self.api.delete_exp)(existing.id)
 
     def attached_files(self, expense):
-        return [str(g(f, "fileName", "name", "filename", default=""))
+        return [str(g(f, "originalFileName", "fileName", "name", "filename", default=""))
                 for f in self.api.expense_files(expense.id)]
 
     def attach_receipt(self, expense, path):
@@ -283,6 +320,13 @@ class TimeKeeperTarget(Target):
         print("\n== Time codes ==  [time_map: timecode_id]")
         for t in self.api.paged("/api/v1/TimeCode", dict(params, IsActive="true")):
             print(f"  {g(t, 'id')}\t{g(t, 'name', default='')}\t(activity {g(t, 'activityID', default='-')})")
+        print("\n== Receipt categories ==  [expense_map: receipt_category_id (\"Kategori\" on a receipt)]")
+        try:
+            for c in self.api.paged("/api/v1/ReceiptCategory", {}):
+                state = "" if g(c, "isActive", default=True) else "\t(inactive: do not use)"
+                print(f"  {g(c, 'id')}\t{g(c, 'name', default='')}{state}")
+        except SystemExit as e:
+            print(f"  (could not list receipt categories: {e})")
         print("\n== Wage codes ==  [expense_map / allowance_map: wagecode_id]")
         try:
             for w in self.api.paged("/api/v1/WageCode", dict(params, IsActive="true")):

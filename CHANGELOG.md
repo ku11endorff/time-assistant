@@ -8,6 +8,53 @@ Each version has an **Upgrading** list. Read it for every version between yours 
 new one. The agent playbook version is listed too: when it changes, refresh your agent's
 instructions.
 
+## [0.5.0] - 2026-10-26
+
+Agent playbook: 5
+
+### Added
+- **Run from your phone.** A Claude Code cloud session can run the whole routine. With
+  `TIME_ASSISTANT_AUTH=proxy` the TimeKeeper login is added by the cloud environment's
+  network secret and `sync.py` looks up no password; with the file `config.json` missing,
+  the configuration is read from `TIME_ASSISTANT_CONFIG_JSON`. `tools/make_cloud_env.py`
+  builds both lines. [docs/cloud-sessions.md](docs/cloud-sessions.md)
+- **TimeKeeper receipt category and "paid by".** Optional `expense_map` keys
+  `receipt_category_id` and `paid_by` (`self` / `company`). Some accounts refuse the receipt
+  wage code without a category (`HTTP 400 ... Lönekoden Kvitto är inte längre tillgänglig`).
+  `discover` lists the receipt categories; `check-config` shows a `NOTE` until they are set.
+- **VAT.** Optional `vat_ore` on expenses, sent as the VAT amount.
+- **Half-day allowances.** Optional `quantity` (`1` or `0.5`) on allowances; one allowance
+  per calendar day, the price is the day's amount divided by the quantity.
+- `tools/save_receipt.py`: decode a receipt fetched from Kleer (`getExpenseFileImage`),
+  writing the file only if it is a real JPEG, PNG or PDF.
+- Documentation: [how it works](docs/how-it-works.md), a full
+  [getting started](docs/getting-started.md) guide, a
+  [Claude project setup](docs/claude-project-setup.md), and an interactive setup skill,
+  `integrations/claude/time-assistant-setup`.
+- `examples/week.example-expenses.json`: a week with a receipt, a foreign-currency expense
+  and per-day allowances.
+
+### Changed
+- Agent playbook 5: the agent exports `vat_ore`, one allowance object per day, the expense
+  project id Kleer gives (which differs from the time entries' client-project id; list every
+  id in `source_project_ids`), converted amounts for foreign currency, and, in cloud
+  sessions, fetches receipts from Kleer by their file id.
+- CI: the test job is pinned to `ubuntu-24.04`; `ubuntu-latest` moved to 26.04, which has no
+  Python 3.9 build for `setup-python`, so the 3.9 job (and with it the whole matrix) failed.
+
+### Fixed
+- A receipt that was already attached to an expense in TimeKeeper was not recognised
+  (TimeKeeper names the field `originalFileName`), so a re-run could attach it again.
+
+### Upgrading
+- Refresh your agent's instructions (playbook 4 → 5); until you do, every run shows a `WARN`.
+  Claude Code: nothing if you linked the skill. Claude apps: upload the skill again.
+- Run `python3 sync.py check-config` and read the `NOTE` lines. If your TimeKeeper rejects
+  expense rows, set `receipt_category_id` and `paid_by` in `expense_map`
+  ([docs/targets/timekeeper.md](docs/targets/timekeeper.md#receipt-category-and-paid-by)).
+- If expenses show up as "not replicated", add the expense project id to
+  `source_project_ids`.
+
 ## [0.4.1] - 2026-10-11
 
 Agent playbook: 4
