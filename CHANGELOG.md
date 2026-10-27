@@ -39,7 +39,6 @@ Agent playbook: 5
   project id Kleer gives (which differs from the time entries' client-project id; list every
   id in `source_project_ids`), converted amounts for foreign currency, and, in cloud
   sessions, fetches receipts from Kleer by their file id.
-
 - CI: the test job is pinned to `ubuntu-24.04`; `ubuntu-latest` moved to 26.04, which has no
   Python 3.9 build for `setup-python`, so the 3.9 job (and with it the whole matrix) failed.
 
