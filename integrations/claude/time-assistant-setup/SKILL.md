@@ -10,6 +10,9 @@ a tool that copies their **approved Kleer week** into **TimeKeeper**. The docume
 source of truth; you make them interactive. Read the one that matches the step before you
 explain it, and never invent ids, menu names or commands:
 
+If the person prefers a page to click through, point them to `docs/guide.html` (opens in any
+browser, works offline, builds `config.json` from the ids they collect).
+
 | Topic | Document in the repository |
 |---|---|
 | What it does and the rules | `docs/how-it-works.md` |

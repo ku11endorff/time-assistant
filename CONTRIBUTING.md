@@ -33,6 +33,7 @@ The tests are offline and need no accounts: targets are tested against fakes of 
 | Behaviour shared by all targets | `time_assistant/engine.py`, tested in `tests/test_engine.py` (and `tests/target_contract.py` if it is something every target must do) |
 | `config.json` fields | `time_assistant/config.py`, `config.example.json`, `docs/configuration.md`. A new *optional* field also gets a `NOTE` in `config.feature_notes()`, so people who update learn it exists |
 | Week file | `time_assistant/week.py`, `schema/week.schema.json`, `docs/data-convention.md` (a new field also gets a row in the semantic table, filled for every system) |
+| Setup guide | `docs/guide.html` (one self-contained file, no external resources). Keep its commands and ids in step with `docs/getting-started.md`. `tests/test_guide.py` runs in CI; after changing the page also run `python3 tools/check_guide_browser.py` (needs `pip install playwright` and a Chromium) |
 | Agent instructions | `docs/agent-playbook.md` only, then `python3 tools/build_adapters.py` to regenerate `AGENTS.md`, `.github/copilot-instructions.md` and `integrations/`. If the change affects what the agent writes, bump `PLAYBOOK_VERSION` in `time_assistant/week.py` and the two numbers in the playbook (tests check they match), and say so in the changelog |
 
 ## The semantic data table
