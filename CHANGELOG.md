@@ -8,6 +8,25 @@ Each version has an **Upgrading** list. Read it for every version between yours 
 new one. The agent playbook version is listed too: when it changes, refresh your agent's
 instructions.
 
+## [0.5.1] - 2026-10-28
+
+Agent playbook: 5
+
+### Added
+- `docs/guide.html`: an interactive setup guide in one self-contained HTML file. Pick a route
+  (computer, phone/web, Claude project), tick off the steps with copy buttons for every
+  command (the keychain command follows your target name), build your `config.json` and the
+  cloud environment lines from the ids you collect, look up where each id comes from, and
+  search the troubleshooting list. Works offline, sends nothing anywhere, never asks for a
+  password, saves progress only in your browser.
+- `tests/test_guide.py` checks the page statically (no external resources, links and commands
+  exist) and runs its config builder in node: the generated configs must pass `sync.py`'s own
+  config check. `tools/check_guide_browser.py` drives the page in a real browser (61 checks:
+  routes, saved progress, copy and download, phone width, dark mode, no network requests).
+
+### Upgrading
+- Nothing to do.
+
 ## [0.5.0] - 2026-10-26
 
 Agent playbook: 5

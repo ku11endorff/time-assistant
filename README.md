@@ -40,7 +40,8 @@ dependency-free Python script does the writing, only after you have seen a dry r
 | I want to... | Read |
 |---|---|
 | Understand how Kleer and TimeKeeper are linked and what a weekly run does | [docs/how-it-works.md](docs/how-it-works.md) |
-| Set it up for my own projects, step by step (or be guided interactively) | [docs/getting-started.md](docs/getting-started.md) |
+| Be guided interactively in the browser: pick a route, tick off steps, build my `config.json` (open the file; it works offline) | [docs/guide.html](docs/guide.html) |
+| Set it up for my own projects, step by step (or be guided interactively in Claude) | [docs/getting-started.md](docs/getting-started.md) |
 | Run it from Claude: a project, the skills, and the weekly routine after I approve in Kleer | [docs/claude-project-setup.md](docs/claude-project-setup.md) |
 | Run it from my phone | [docs/cloud-sessions.md](docs/cloud-sessions.md) |
 | Hand it to a colleague | Send them this repository; everything personal lives in their own git-ignored `config.json` |
@@ -225,6 +226,7 @@ has the rest.
 | `schema/week.schema.json` | The week file contract between agent and script |
 | `examples/` | A valid example week and a two-target example config |
 | `docs/how-it-works.md` | How the Kleer ↔ TimeKeeper replication works, in plain words |
+| `docs/guide.html` | Interactive setup guide in one offline HTML file: routes, step checklist, config builder, troubleshooting |
 | `docs/getting-started.md` | Full setup, step by step, with where to find every id |
 | `docs/claude-project-setup.md` | A Claude project, the skills, and the weekly routine |
 | `docs/cloud-sessions.md` | Running it from your phone in a Claude Code cloud session |
@@ -236,7 +238,7 @@ has the rest.
 | `CHANGELOG.md`, `docs/updating.md` | What changed in each version, and how to update |
 | `docs/data-convention.md` | Source → week file, how rows are recognised, and the semantic table: every piece of data in every system |
 | `AGENTS.md`, `.github/copilot-instructions.md`, `integrations/` | Generated from the playbook by `tools/build_adapters.py`; the exception is `integrations/claude/time-assistant-setup/`, the hand-written interactive setup guide |
-| `tools/` | `save_receipt.py` and `make_cloud_env.py` (cloud sessions), plus the build and release helpers |
+| `tools/` | `save_receipt.py` and `make_cloud_env.py` (cloud sessions), `check_guide_browser.py` (browser test of the HTML guide), plus the build and release helpers |
 | `tests/` | Offline tests; `tests/target_contract.py` is the suite every target must pass |
 
 ## Known limits

@@ -54,6 +54,8 @@ class LinkTests(unittest.TestCase):
         for name in ("how-it-works", "getting-started", "claude-project-setup", "cloud-sessions"):
             self.assertTrue(os.path.isfile(os.path.join(ROOT, "docs", f"{name}.md")), name)
             self.assertIn(f"docs/{name}.md", readme)
+        self.assertTrue(os.path.isfile(os.path.join(ROOT, "docs", "guide.html")))
+        self.assertIn("docs/guide.html", readme)
 
 
 class SetupSkillTests(unittest.TestCase):

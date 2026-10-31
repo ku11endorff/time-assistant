@@ -3,7 +3,11 @@
 From nothing to a first replicated week, step by step. Every id on this page is a made-up
 example; yours come from your own Kleer and TimeKeeper.
 
-**Want to be guided interactively?** Install the setup skill ([step 0](#0-optional-let-claude-guide-you))
+**Prefer a page you can click through?** Open [`guide.html`](guide.html) in a browser: it works
+offline, lets you pick your route, tick off the steps, and builds your `config.json` from the
+ids you collect. Nothing you type leaves the page.
+
+**Want to be guided interactively in Claude?** Install the setup skill ([step 0](#0-optional-let-claude-guide-you))
 and say *"Guide me through time-assistant setup"*. It walks you through this same page one
 step at a time, runs the commands it can, and waits for you where only you can act. Any other
 AI agent can do the same if you paste [`integrations/claude/time-assistant-setup/SKILL.md`](../integrations/claude/time-assistant-setup/SKILL.md)
